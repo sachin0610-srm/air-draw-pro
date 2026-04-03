@@ -1,0 +1,12 @@
+{
+  "name": "airdraw-pro-ai",
+  "version": "1.0.0",
+  "description": "AI-powered air drawing application with hand gesture recognition",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8080"
+  },
+  "keywords": ["ai", "hand-tracking", "drawing", "mediapipe", "opencv"],
+  "author": "Sachin",
+  "license": "MIT"
+}

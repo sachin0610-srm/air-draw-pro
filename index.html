@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AirDraw Pro AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --accent: #a78bff;
+    --accent2: #60a5fa;
+    --text: #e8e4ff;
+    --muted: rgba(232,228,255,0.4);
+    --card-bg: rgba(255,255,255,0.04);
+    --border: rgba(120,80,255,0.15);
+    --border-hover: rgba(120,80,255,0.4);
+    --glow: rgba(120,80,255,0.35);
+    --font-head: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Outfit', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 400;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* WebGL Canvas */
+  #shader-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* Scrollable content */
+  .page {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+  }
+
+  /* NAVBAR */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 40px;
+    background: rgba(10,10,15,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .logo {
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: -0.3px;
+    color: #fff;
+  }
+  .logo span { color: var(--accent); }
+
+  .nav-right { display: flex; align-items: center; gap: 14px; }
+
+  .badge {
+    background: rgba(120,80,255,0.12);
+    border: 1px solid rgba(120,80,255,0.3);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-family: var(--font-head);
+  }
+
+  .nav-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #34d399;
+    box-shadow: 0 0 8px #34d399;
+    animation: blink 2s infinite;
+  }
+
+  /* HERO */
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 72px 24px 48px;
+    animation: fadeUp 0.7s 0.1s ease both;
+  }
+
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-family: var(--font-head);
+  }
+
+  .pulse-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulseDot 2s ease-in-out infinite;
+  }
+
+  .hero-title {
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: clamp(38px, 6vw, 62px);
+    line-height: 1.08;
+    letter-spacing: -1.5px;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+
+  .hero-title .grad {
+    background: linear-gradient(135deg, #a78bff 0%, #60a5fa 60%, #a78bff 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 4s linear infinite;
+  }
+
+  .hero-sub {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--muted);
+    max-width: 400px;
+    line-height: 1.75;
+    margin-bottom: 40px;
+    letter-spacing: 0.1px;
+  }
+
+  /* START BUTTON */
+  .cta-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 48px;
+    animation: fadeUp 0.7s 0.3s ease both;
+  }
+
+  .start-btn {
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    border: none;
+    border-radius: 14px;
+    padding: 17px 44px;
+    font-family: var(--font-head);
+    font-weight: 600;
+    font-size: 15px;
+    color: #fff;
+    cursor: pointer;
+    letter-spacing: 0.4px;
+    box-shadow: 0 0 28px rgba(120,80,255,0.4), 0 0 60px rgba(120,80,255,0.15);
+    transition: all 0.25s ease;
+    animation: breathe 3s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .start-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .start-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 44px rgba(120,80,255,0.6), 0 8px 30px rgba(120,80,255,0.3);
+    animation: none;
+  }
+
+  .start-btn:hover::before { opacity: 1; }
+  .start-btn:active { transform: translateY(-1px); }
+
+  .hint-text {
+    font-size: 11px;
+    color: rgba(232,228,255,0.28);
+    letter-spacing: 0.5px;
+  }
+
+  /* CANVAS SECTION */
+  .canvas-section {
+    padding: 0 24px;
+    margin-bottom: 28px;
+    animation: fadeUp 0.7s 0.4s ease both;
+  }
+
+  .canvas-card {
+    background: rgba(13,13,22,0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(120,80,255,0.2);
+    border-radius: 18px;
+    overflow: hidden;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .canvas-container {
+    position: relative;
+    height: 450px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8,8,18,0.6);
+  }
+
+  #drawingCanvas {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+  }
+
+  .canvas-placeholder {
+    font-size: 52px;
+    opacity: 0.15;
+    user-select: none;
+    filter: grayscale(0.3);
+  }
+
+  .canvas-label {
+    position: absolute;
+    bottom: 12px;
+    right: 14px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: rgba(167,139,255,0.4);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  /* STATUS STRIP */
+  .status-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid rgba(120,80,255,0.1);
+  }
+
+  .status-item {
+    padding: 11px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border-right: 1px solid rgba(120,80,255,0.07);
+  }
+  .status-item:last-child { border-right: none; }
+
+  .status-emoji { font-size: 17px; line-height: 1; }
+
+  .status-label {
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(232,228,255,0.3);
+  }
+
+  .status-value {
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+    font-family: var(--font-mono);
+  }
+
+  /* COLOR PICKER */
+  .color-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 24px 22px;
+    animation: fadeUp 0.7s 0.5s ease both;
+  }
+
+  .color-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(232,228,255,0.28);
+    margin-right: 4px;
+    font-family: var(--font-mono);
+  }
+
+  .swatch {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border: 2px solid transparent;
+    flex-shrink: 0;
+  }
+
+  .swatch:hover { transform: scale(1.2); }
+
+  .swatch.selected {
+    border-color: rgba(255,255,255,0.9);
+    transform: scale(1.15);
+    box-shadow: 0 0 10px rgba(255,255,255,0.2);
+  }
+
+  /* BRUSH TYPE */
+  .brush-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 24px 32px;
+    flex-wrap: wrap;
+    animation: fadeUp 0.7s 0.5s ease both;
+  }
+
+  .brush-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 9px;
+    padding: 8px 15px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: rgba(232,228,255,0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .brush-btn:hover {
+    background: rgba(120,80,255,0.1);
+    border-color: rgba(120,80,255,0.3);
+    color: #c4b5fd;
+  }
+
+  .brush-btn.selected {
+    background: rgba(120,80,255,0.14);
+    border-color: rgba(120,80,255,0.5);
+    color: #c4b5fd;
+    box-shadow: 0 0 12px rgba(120,80,255,0.15);
+  }
+
+  /* CONTROL BUTTONS */
+  .controls-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 0 24px 28px;
+    flex-wrap: wrap;
+    animation: fadeUp 0.7s 0.6s ease both;
+  }
+
+  .control-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(232,228,255,0.6);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .control-btn:hover {
+    background: rgba(120,80,255,0.12);
+    border-color: rgba(120,80,255,0.35);
+    color: #c4b5fd;
+    transform: translateY(-2px);
+  }
+
+  .control-btn:active { transform: translateY(0); }
+
+  /* FEATURE CARDS */
+  .features-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px;
+    padding: 0 24px 28px;
+    max-width: 800px;
+    margin: 0 auto;
+    animation: fadeUp 0.7s 0.7s ease both;
+  }
+
+  .feat-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 16px;
+    transition: all 0.25s ease;
+    cursor: default;
+  }
+
+  .feat-card:hover {
+    background: rgba(120,80,255,0.08);
+    border-color: rgba(120,80,255,0.22);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(120,80,255,0.1);
+  }
+
+  .feat-icon {
+    font-size: 22px;
+    display: block;
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+
+  .feat-title {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 600;
+    color: #e8e4ff;
+    margin-bottom: 3px;
+    letter-spacing: 0.1px;
+  }
+
+  .feat-desc {
+    font-size: 11px;
+    color: rgba(232,228,255,0.33);
+    line-height: 1.5;
+  }
+
+  /* KEYBOARD SHORTCUTS */
+  .shortcuts-section {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 0 24px 48px;
+    animation: fadeUp 0.7s 0.8s ease both;
+  }
+
+  .shortcut {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: rgba(232,228,255,0.3);
+    font-family: var(--font-mono);
+  }
+
+  .key {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    padding: 3px 8px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: rgba(232,228,255,0.5);
+    letter-spacing: 0.3px;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10,10,15,0.5);
+    backdrop-filter: blur(8px);
+  }
+
+  .footer-text {
+    font-size: 11px;
+    color: rgba(232,228,255,0.2);
+    font-family: var(--font-mono);
+    letter-spacing: 0.5px;
+  }
+
+  .footer-version {
+    font-size: 10px;
+    color: rgba(167,139,255,0.4);
+    font-family: var(--font-mono);
+    letter-spacing: 1px;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.35; transform: scale(0.6); }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: 0% center; }
+    100% { background-position: 200% center; }
+  }
+
+  @keyframes breathe {
+    0%, 100% { box-shadow: 0 0 28px rgba(120,80,255,0.4), 0 0 60px rgba(120,80,255,0.15); }
+    50%       { box-shadow: 0 0 40px rgba(120,80,255,0.6), 0 0 80px rgba(120,80,255,0.25); }
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 480px) {
+    nav { padding: 16px 20px; }
+    .hero { padding: 48px 16px 32px; }
+    .features-section { padding: 0 16px 24px; grid-template-columns: 1fr; }
+    .shortcuts-section { gap: 10px; }
+    footer { flex-direction: column; gap: 6px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="shader-canvas"></canvas>
+
+<div class="page">
+
+  <!-- NAVBAR -->
+  <nav>
+    <div class="logo">Air<span>Draw</span> Pro</div>
+    <div class="nav-right">
+      <div class="nav-dot" id="status-dot"></div>
+      <div class="badge">AI Powered</div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="eyebrow">
+      <div class="pulse-dot"></div>
+      Gesture Recognition
+    </div>
+    <h1 class="hero-title">
+      Draw with<br>
+      <span class="grad">thin air.</span>
+    </h1>
+    <p class="hero-sub">Real-time hand tracking powered by MediaPipe. Zero lag. Just raise your finger and paint on the invisible canvas.</p>
+  </section>
+
+  <!-- START BUTTON -->
+  <div class="cta-wrap">
+    <button class="start-btn" id="start-btn">▶&nbsp;&nbsp;Start Drawing</button>
+    <span class="hint-text">Desktop app must be running</span>
+  </div>
+
+  <!-- CANVAS PREVIEW -->
+  <div class="canvas-section">
+    <div class="canvas-card">
+      <div class="canvas-container">
+        <canvas id="drawingCanvas" width="640" height="480"></canvas>
+        <div class="canvas-placeholder" id="canvas-placeholder">🎨</div>
+        <div class="canvas-label" id="canvas-status">READY · CANVAS</div>
+      </div>
+      <div class="status-strip">
+        <div class="status-item">
+          <span class="status-emoji">🖌️</span>
+          <span class="status-label">Mode</span>
+          <span class="status-value" id="mode-display">—</span>
+        </div>
+        <div class="status-item">
+          <span class="status-emoji">✏️</span>
+          <span class="status-label">Brush</span>
+          <span class="status-value" id="brush-display">—</span>
+        </div>
+        <div class="status-item">
+          <span class="status-emoji">📄</span>
+          <span class="status-label">Page</span>
+          <span class="status-value" id="page-display">—</span>
+        </div>
+        <div class="status-item">
+          <span class="status-emoji">📏</span>
+          <span class="status-label">Size</span>
+          <span class="status-value" id="size-display">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLOR PICKER -->
+  <div class="color-section">
+    <span class="color-label">Color</span>
+    <div class="swatch selected" style="background:#a78bff" data-color="167,139,255"></div>
+    <div class="swatch" style="background:#60a5fa" data-color="96,165,250"></div>
+    <div class="swatch" style="background:#f472b6" data-color="244,114,182"></div>
+    <div class="swatch" style="background:#34d399" data-color="52,211,153"></div>
+    <div class="swatch" style="background:#fb923c" data-color="251,146,60"></div>
+    <div class="swatch" style="background:#f9fafb" data-color="249,250,251"></div>
+  </div>
+
+  <!-- BRUSH TYPE -->
+  <div class="brush-section">
+    <div class="brush-btn selected" data-brush="smooth">✏️ Smooth</div>
+    <div class="brush-btn" data-brush="marker">🖊️ Marker</div>
+    <div class="brush-btn" data-brush="block">⬛ Block</div>
+  </div>
+
+  <!-- CONTROL BUTTONS -->
+  <div class="controls-section">
+    <div class="control-btn" id="undo-btn">↶ Undo</div>
+    <div class="control-btn" id="redo-btn">↷ Redo</div>
+    <div class="control-btn" id="clear-btn">🗑️ Clear</div>
+    <div class="control-btn" id="save-btn">💾 Save PNG</div>
+    <div class="control-btn" id="prev-page-btn">← Prev Page</div>
+    <div class="control-btn" id="next-page-btn">Next Page →</div>
+  </div>
+
+  <!-- FEATURE CARDS -->
+  <div class="features-section">
+    <div class="feat-card">
+      <span class="feat-icon">🤚</span>
+      <div class="feat-title">21-Point Tracking</div>
+      <div class="feat-desc">Full MediaPipe hand skeleton with real-time landmark detection</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🎨</span>
+      <div class="feat-title">Multi-Brush Modes</div>
+      <div class="feat-desc">Smooth, marker, and block brush styles with adjustable size</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">↶</span>
+      <div class="feat-title">Undo/Redo</div>
+      <div class="feat-desc">40-level history stack per page for mistake correction</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">📄</span>
+      <div class="feat-title">Multi-Page Canvas</div>
+      <div class="feat-desc">Multiple pages with independent drawing histories</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🔧</span>
+      <div class="feat-title">Shape Assist</div>
+      <div class="feat-desc">Draw perfect lines and circles with assistant tools</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">💾</span>
+      <div class="feat-title">Save & Export</div>
+      <div class="feat-desc">Export transparent PNG or save complete drawing</div>
+    </div>
+  </div>
+
+  <!-- KEYBOARD SHORTCUTS -->
+  <div class="shortcuts-section">
+    <div class="shortcut"><span class="key">Q</span> Quit</div>
+    <div class="shortcut"><span class="key">C</span> Clear</div>
+    <div class="shortcut"><span class="key">U</span> Undo</div>
+    <div class="shortcut"><span class="key">R</span> Redo</div>
+    <div class="shortcut"><span class="key">E</span> Eraser</div>
+    <div class="shortcut"><span class="key">S</span> Save</div>
+    <div class="shortcut"><span class="key">X</span> Export PNG</div>
+    <div class="shortcut"><span class="key">L</span> Line Assist</div>
+    <div class="shortcut"><span class="key">O</span> Circle Assist</div>
+    <div class="shortcut"><span class="key">M</span> Fullscreen</div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <span class="footer-text">AirDraw Pro AI © 2025 · Made with ❤️</span>
+    <span class="footer-version">v2.0.0 · REST API</span>
+  </footer>
+
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const API_BASE = 'http://localhost:8000';
+let updateInterval = null;
+let isActive = false;
+
+// ── WebGL SHADER BACKGROUND ──────────────────────────────────────────────────
+const canvas = document.getElementById('shader-canvas');
+const gl = canvas.getContext('webgl');
+
+const vsSource = `
+  attribute vec4 aVertexPosition;
+  void main() {
+    gl_Position = aVertexPosition;
+  }
+`;
+
+const fsSource = `
+  precision highp float;
+  uniform vec2 iResolution;
+  uniform float iTime;
+
+  const float overallSpeed = 0.2;
+  const float gridSmoothWidth = 0.015;
+  const float axisWidth = 0.05;
+  const float majorLineWidth = 0.025;
+  const float minorLineWidth = 0.0125;
+  const float majorLineFrequency = 5.0;
+  const float minorLineFrequency = 1.0;
+  const vec4 gridColor = vec4(0.5);
+  const float scale = 5.0;
+  const vec4 lineColor = vec4(0.4, 0.2, 0.8, 1.0);
+  const float minLineWidth = 0.01;
+  const float maxLineWidth = 0.2;
+  const float lineSpeed = 1.0 * overallSpeed;
+  const float lineAmplitude = 1.0;
+  const float lineFrequency = 0.2;
+  const float warpSpeed = 0.2 * overallSpeed;
+  const float warpFrequency = 0.5;
+  const float warpAmplitude = 1.0;
+  const float offsetFrequency = 0.5;
+  const float offsetSpeed = 1.33 * overallSpeed;
+  const float minOffsetSpread = 0.6;
+  const float maxOffsetSpread = 2.0;
+  const int linesPerGroup = 16;
+
+  #define drawCircle(pos, radius, coord) smoothstep(radius + gridSmoothWidth, radius, length(coord - (pos)))
+  #define drawSmoothLine(pos, halfWidth, t) smoothstep(halfWidth, 0.0, abs(pos - (t)))
+  #define drawCrispLine(pos, halfWidth, t) smoothstep(halfWidth + gridSmoothWidth, halfWidth, abs(pos - (t)))
+  #define drawPeriodicLine(freq, width, t) drawCrispLine(freq / 2.0, width, abs(mod(t, freq) - (freq) / 2.0))
+
+  float drawGridLines(float axis) {
+    return drawCrispLine(0.0, axisWidth, axis)
+          + drawPeriodicLine(majorLineFrequency, majorLineWidth, axis)
+          + drawPeriodicLine(minorLineFrequency, minorLineWidth, axis);
+  }
+
+  float drawGrid(vec2 space) {
+    return min(1.0, drawGridLines(space.x) + drawGridLines(space.y));
+  }
+
+  float random(float t) {
+    return (cos(t) + cos(t * 1.3 + 1.3) + cos(t * 1.4 + 1.4)) / 3.0;
+  }
+
+  float getPlasmaY(float x, float horizontalFade, float offset) {
+    return random(x * lineFrequency + iTime * lineSpeed) * horizontalFade * lineAmplitude + offset;
+  }
+
+  void main() {
+    vec2 fragCoord = gl_FragCoord.xy;
+    vec4 fragColor;
+    vec2 uv = fragCoord.xy / iResolution.xy;
+    vec2 space = (fragCoord - iResolution.xy / 2.0) / iResolution.x * 2.0 * scale;
+
+    float horizontalFade = 1.0 - (cos(uv.x * 6.28) * 0.5 + 0.5);
+    float verticalFade = 1.0 - (cos(uv.y * 6.28) * 0.5 + 0.5);
+
+    space.y += random(space.x * warpFrequency + iTime * warpSpeed) * warpAmplitude * (0.5 + horizontalFade);
+    space.x += random(space.y * warpFrequency + iTime * warpSpeed + 2.0) * warpAmplitude * horizontalFade;
+
+    vec4 lines = vec4(0.0);
+    vec4 bgColor1 = vec4(0.1, 0.1, 0.3, 1.0);
+    vec4 bgColor2 = vec4(0.3, 0.1, 0.5, 1.0);
+
+    for(int l = 0; l < linesPerGroup; l++) {
+      float normalizedLineIndex = float(l) / float(linesPerGroup);
+      float offsetTime = iTime * offsetSpeed;
+      float offsetPosition = float(l) + space.x * offsetFrequency;
+      float rand = random(offsetPosition + offsetTime) * 0.5 + 0.5;
+      float halfWidth = mix(minLineWidth, maxLineWidth, rand * horizontalFade) / 2.0;
+      float offset = random(offsetPosition + offsetTime * (1.0 + normalizedLineIndex)) * mix(minOffsetSpread, maxOffsetSpread, horizontalFade);
+      float linePosition = getPlasmaY(space.x, horizontalFade, offset);
+      float line = drawSmoothLine(linePosition, halfWidth, space.y) / 2.0 + drawCrispLine(linePosition, halfWidth * 0.15, space.y);
+
+      float circleX = mod(float(l) + iTime * lineSpeed, 25.0) - 12.0;
+      vec2 circlePosition = vec2(circleX, getPlasmaY(circleX, horizontalFade, offset));
+      float circle = drawCircle(circlePosition, 0.01, space) * 4.0;
+
+      line = line + circle;
+      lines += line * lineColor * rand;
+    }
+
+    fragColor = mix(bgColor1, bgColor2, uv.x);
+    fragColor *= verticalFade;
+    fragColor.a = 1.0;
+    fragColor += lines;
+
+    gl_FragColor = fragColor;
+  }
+`;
+
+function loadShader(gl, type, source) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error('Shader error:', gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
+    return null;
+  }
+  return shader;
+}
+
+function initShaderProgram(gl, vs, fs) {
+  const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vs);
+  const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fs);
+  const program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error('Program error:', gl.getProgramInfoLog(program));
+    return null;
+  }
+  return program;
+}
+
+if (gl) {
+  const program = initShaderProgram(gl, vsSource, fsSource);
+  const positionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+  const programInfo = {
+    program,
+    attrib: gl.getAttribLocation(program, 'aVertexPosition'),
+    uRes:   gl.getUniformLocation(program, 'iResolution'),
+    uTime:  gl.getUniformLocation(program, 'iTime'),
+  };
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const startTime = Date.now();
+  function render() {
+    const t = (Date.now() - startTime) / 1000;
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(programInfo.program);
+    gl.uniform2f(programInfo.uRes, canvas.width, canvas.height);
+    gl.uniform1f(programInfo.uTime, t);
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.vertexAttribPointer(programInfo.attrib, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(programInfo.attrib);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+}
+
+// ── API FUNCTIONS ─────────────────────────────────────────────────────────────
+
+async function apiCall(endpoint, method = 'GET', body = null) {
+  try {
+    const options = {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+    };
+    if (body) options.body = JSON.stringify(body);
+    
+    const response = await fetch(`${API_BASE}${endpoint}`, options);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error(`API error (${endpoint}):`, error);
+    return null;
+  }
+}
+
+async function updateCanvas() {
+  const data = await apiCall('/canvas/image?transparent=false&base64_data=true');
+  if (!data || !data.png_base64) return;
+
+  const img = new Image();
+  img.onload = () => {
+    const ctx = drawingCanvas.getContext('2d');
+    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+    ctx.drawImage(img, 0, 0);
+    document.getElementById('canvas-placeholder').style.display = 'none';
+  };
+  img.src = 'data:image/png;base64,' + data.png_base64;
+}
+
+async function updateStatus() {
+  const state = await apiCall('/state');
+  if (!state) return;
+
+  document.getElementById('mode-display').textContent = state.tool || '—';
+  document.getElementById('brush-display').textContent = state.brush_mode || '—';
+  document.getElementById('page-display').textContent = state.page_index !== undefined ? `${state.page_index + 1}/${state.page_count}` : '—';
+  document.getElementById('size-display').textContent = state.thickness ? `${state.thickness}px` : '—';
+
+  const statusDot = document.getElementById('status-dot');
+  const canvasStatus = document.getElementById('canvas-status');
+  if (isActive) {
+    statusDot.style.background = '#34d399';
+    statusDot.style.boxShadow = '0 0 8px #34d399';
+    canvasStatus.textContent = 'LIVE · CANVAS';
+  } else {
+    statusDot.style.background = '#f59e0b';
+    statusDot.style.boxShadow = '0 0 8px #f59e0b';
+    canvasStatus.textContent = 'READY · CANVAS';
+  }
+}
+
+async function startUpdates() {
+  if (updateInterval) return;
+  isActive = true;
+  await updateStatus();
+  await updateCanvas();
+  updateInterval = setInterval(async () => {
+    await updateStatus();
+    await updateCanvas();
+  }, 500); // Update every 500ms
+}
+
+function stopUpdates() {
+  if (updateInterval) {
+    clearInterval(updateInterval);
+    updateInterval = null;
+  }
+  isActive = false;
+  updateStatus();
+}
+
+// ── UI INTERACTIONS ───────────────────────────────────────────────────────────
+
+// Color swatches
+document.querySelectorAll('.swatch').forEach(s => {
+  s.addEventListener('click', async () => {
+    document.querySelectorAll('.swatch').forEach(x => x.classList.remove('selected'));
+    s.classList.add('selected');
+    
+    const color = s.getAttribute('data-color');
+    const [r, g, b] = color.split(',').map(Number);
+    await apiCall('/tool/color', 'POST', { name: 'custom', bgr: [b, g, r] });
+    await updateStatus();
+  });
+});
+
+// Brush type buttons
+document.querySelectorAll('.brush-btn').forEach(b => {
+  b.addEventListener('click', async () => {
+    document.querySelectorAll('.brush-btn').forEach(x => x.classList.remove('selected'));
+    b.classList.add('selected');
+    
+    const mode = b.getAttribute('data-brush');
+    await apiCall('/tool/brush', 'POST', { mode });
+    await updateStatus();
+  });
+});
+
+// Control buttons
+document.getElementById('undo-btn').addEventListener('click', async () => {
+  await apiCall('/canvas/undo', 'POST');
+  await updateCanvas();
+});
+
+document.getElementById('redo-btn').addEventListener('click', async () => {
+  await apiCall('/canvas/redo', 'POST');
+  await updateCanvas();
+});
+
+document.getElementById('clear-btn').addEventListener('click', async () => {
+  if (confirm('Clear the entire canvas?')) {
+    await apiCall('/canvas/clear', 'POST');
+    await updateCanvas();
+  }
+});
+
+document.getElementById('save-btn').addEventListener('click', async () => {
+  const data = await apiCall('/canvas/image?transparent=true&base64_data=true');
+  if (!data || !data.png_base64) return;
+  
+  const link = document.createElement('a');
+  link.download = `airdraw-${Date.now()}.png`;
+  link.href = 'data:image/png;base64,' + data.png_base64;
+  link.click();
+});
+
+document.getElementById('prev-page-btn').addEventListener('click', async () => {
+  await apiCall('/page/prev', 'POST');
+  await updateCanvas();
+  await updateStatus();
+});
+
+document.getElementById('next-page-btn').addEventListener('click', async () => {
+  await apiCall('/page/next', 'POST');
+  await updateCanvas();
+  await updateStatus();
+});
+
+// Start button
+const startBtn = document.getElementById('start-btn');
+const drawingCanvas = document.getElementById('drawingCanvas');
+
+startBtn.addEventListener('click', async () => {
+  if (isActive) {
+    // Stop
+    stopUpdates();
+    startBtn.innerHTML = '▶&nbsp;&nbsp;Start Drawing';
+    startBtn.style.animation = 'breathe 3s ease-in-out infinite';
+  } else {
+    // Start
+    startBtn.textContent = 'Connecting...';
+    startBtn.style.animation = 'none';
+    startBtn.style.opacity = '0.8';
+    
+    const state = await apiCall('/state');
+    if (state) {
+      startUpdates();
+      startBtn.innerHTML = '⏸&nbsp;&nbsp;Stop Updates';
+      startBtn.style.opacity = '1';
+    } else {
+      setTimeout(() => {
+        startBtn.innerHTML = '▶&nbsp;&nbsp;Start Drawing';
+        startBtn.style.animation = 'breathe 3s ease-in-out infinite';
+        startBtn.style.opacity = '1';
+      }, 2000);
+      alert('Cannot connect to AirDraw API at ' + API_BASE + '\n\nMake sure the API server is running:\n\ncd airdraw\n.venv\\Scripts\\activate\nuvicorn api_server:app --host 0.0.0.0 --port 8000');
+    }
+  }
+});
+
+// Initial status check
+updateStatus();
+</script>
+</body>
+</html>

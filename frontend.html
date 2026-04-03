@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AirDraw Pro AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --accent: #a78bff;
+    --accent2: #60a5fa;
+    --text: #e8e4ff;
+    --muted: rgba(232,228,255,0.4);
+    --card-bg: rgba(255,255,255,0.04);
+    --border: rgba(120,80,255,0.15);
+    --border-hover: rgba(120,80,255,0.4);
+    --glow: rgba(120,80,255,0.35);
+    --font-head: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Outfit', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 400;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* WebGL Canvas */
+  #shader-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* Scrollable content */
+  .page {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+  }
+
+  /* NAVBAR */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 40px;
+    background: rgba(10,10,15,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .logo {
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: -0.3px;
+    color: #fff;
+  }
+  .logo span { color: var(--accent); }
+
+  .nav-right { display: flex; align-items: center; gap: 14px; }
+
+  .badge {
+    background: rgba(120,80,255,0.12);
+    border: 1px solid rgba(120,80,255,0.3);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-family: var(--font-head);
+  }
+
+  .nav-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #34d399;
+    box-shadow: 0 0 8px #34d399;
+    animation: blink 2s infinite;
+  }
+
+  /* HERO */
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 72px 24px 48px;
+    animation: fadeUp 0.7s 0.1s ease both;
+  }
+
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-family: var(--font-head);
+  }
+
+  .pulse-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulseDot 2s ease-in-out infinite;
+  }
+
+  .hero-title {
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: clamp(38px, 6vw, 62px);
+    line-height: 1.08;
+    letter-spacing: -1.5px;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+
+  .hero-title .grad {
+    background: linear-gradient(135deg, #a78bff 0%, #60a5fa 60%, #a78bff 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 4s linear infinite;
+  }
+
+  .hero-sub {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--muted);
+    max-width: 400px;
+    line-height: 1.75;
+    margin-bottom: 40px;
+    letter-spacing: 0.1px;
+  }
+
+  /* BRUSH PILLS */
+  .pills-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 36px;
+    animation: fadeUp 0.7s 0.2s ease both;
+  }
+
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 30px;
+    padding: 8px 16px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(232,228,255,0.65);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .pill:hover {
+    background: rgba(120,80,255,0.1);
+    border-color: rgba(120,80,255,0.35);
+    color: #c4b5fd;
+  }
+
+  .pill.active {
+    background: rgba(120,80,255,0.18);
+    border-color: rgba(120,80,255,0.55);
+    color: #c4b5fd;
+    box-shadow: 0 0 14px rgba(120,80,255,0.2);
+  }
+
+  .pill-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* START BUTTON */
+  .cta-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 48px;
+    animation: fadeUp 0.7s 0.3s ease both;
+  }
+
+  .start-btn {
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    border: none;
+    border-radius: 14px;
+    padding: 17px 44px;
+    font-family: var(--font-head);
+    font-weight: 600;
+    font-size: 15px;
+    color: #fff;
+    cursor: pointer;
+    letter-spacing: 0.4px;
+    box-shadow: 0 0 28px rgba(120,80,255,0.4), 0 0 60px rgba(120,80,255,0.15);
+    transition: all 0.25s ease;
+    animation: breathe 3s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .start-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .start-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 44px rgba(120,80,255,0.6), 0 8px 30px rgba(120,80,255,0.3);
+    animation: none;
+  }
+
+  .start-btn:hover::before { opacity: 1; }
+  .start-btn:active { transform: translateY(-1px); }
+
+  .hint-text {
+    font-size: 11px;
+    color: rgba(232,228,255,0.28);
+    letter-spacing: 0.5px;
+  }
+
+  /* CAMERA FRAME */
+  .cam-section {
+    padding: 0 24px;
+    margin-bottom: 28px;
+    animation: fadeUp 0.7s 0.4s ease both;
+  }
+
+  .cam-card {
+    background: rgba(13,13,22,0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(120,80,255,0.2);
+    border-radius: 18px;
+    overflow: hidden;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  .cam-frame {
+    position: relative;
+    height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8,8,18,0.6);
+  }
+
+  #canvas-preview {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+  }
+
+  .cam-corners {
+    position: absolute;
+    inset: 14px;
+    pointer-events: none;
+  }
+
+  .corner {
+    position: absolute;
+    width: 18px; height: 18px;
+    border-color: rgba(167,139,255,0.55);
+    border-style: solid;
+  }
+  .corner.tl { top:0; left:0; border-width: 2px 0 0 2px; border-radius: 2px 0 0 0; }
+  .corner.tr { top:0; right:0; border-width: 2px 2px 0 0; border-radius: 0 2px 0 0; }
+  .corner.bl { bottom:0; left:0; border-width: 0 0 2px 2px; border-radius: 0 0 0 2px; }
+  .corner.br { bottom:0; right:0; border-width: 0 2px 2px 0; border-radius: 0 0 2px 0; }
+
+  .cam-scan {
+    position: absolute;
+    left: 14px; right: 14px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(167,139,255,0.5), transparent);
+    animation: scan 3s ease-in-out infinite;
+    top: 14px;
+  }
+
+  .cam-placeholder {
+    font-size: 52px;
+    opacity: 0.15;
+    user-select: none;
+    filter: grayscale(0.3);
+  }
+
+  .cam-label {
+    position: absolute;
+    bottom: 12px;
+    right: 14px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: rgba(167,139,255,0.4);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  /* MODE STRIP */
+  .mode-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid rgba(120,80,255,0.1);
+  }
+
+  .mode-item {
+    padding: 11px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-right: 1px solid rgba(120,80,255,0.07);
+    user-select: none;
+  }
+  .mode-item:last-child { border-right: none; }
+
+  .mode-item:hover {
+    background: rgba(120,80,255,0.06);
+  }
+
+  .mode-item.active-mode {
+    background: rgba(120,80,255,0.1);
+  }
+
+  .mode-emoji { font-size: 17px; line-height: 1; }
+
+  .mode-label {
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(232,228,255,0.3);
+    transition: color 0.2s;
+  }
+
+  .mode-item.active-mode .mode-label { color: var(--accent); }
+
+  /* COLOR PICKER */
+  .color-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 24px 22px;
+    animation: fadeUp 0.7s 0.5s ease both;
+  }
+
+  .color-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(232,228,255,0.28);
+    margin-right: 4px;
+    font-family: var(--font-mono);
+  }
+
+  .swatch {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border: 2px solid transparent;
+    flex-shrink: 0;
+  }
+
+  .swatch:hover { transform: scale(1.2); }
+
+  .swatch.selected {
+    border-color: rgba(255,255,255,0.9);
+    transform: scale(1.15);
+    box-shadow: 0 0 10px rgba(255,255,255,0.2);
+  }
+
+  /* BRUSH TYPE */
+  .brush-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 24px 32px;
+    flex-wrap: wrap;
+    animation: fadeUp 0.7s 0.5s ease both;
+  }
+
+  .brush-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 9px;
+    padding: 8px 15px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: rgba(232,228,255,0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .brush-btn:hover {
+    background: rgba(120,80,255,0.1);
+    border-color: rgba(120,80,255,0.3);
+    color: #c4b5fd;
+  }
+
+  .brush-btn.selected {
+    background: rgba(120,80,255,0.14);
+    border-color: rgba(120,80,255,0.5);
+    color: #c4b5fd;
+    box-shadow: 0 0 12px rgba(120,80,255,0.15);
+  }
+
+  /* FEATURE CARDS */
+  .features-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 0 24px 28px;
+    max-width: 560px;
+    margin: 0 auto;
+    animation: fadeUp 0.7s 0.6s ease both;
+  }
+
+  .feat-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 16px;
+    transition: all 0.25s ease;
+    cursor: default;
+  }
+
+  .feat-card:hover {
+    background: rgba(120,80,255,0.08);
+    border-color: rgba(120,80,255,0.22);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(120,80,255,0.1);
+  }
+
+  .feat-icon {
+    font-size: 22px;
+    display: block;
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+
+  .feat-title {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 600;
+    color: #e8e4ff;
+    margin-bottom: 3px;
+    letter-spacing: 0.1px;
+  }
+
+  .feat-desc {
+    font-size: 11px;
+    color: rgba(232,228,255,0.33);
+    line-height: 1.5;
+  }
+
+  /* KEYBOARD SHORTCUTS */
+  .shortcuts-section {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 0 24px 48px;
+    animation: fadeUp 0.7s 0.7s ease both;
+  }
+
+  .shortcut {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: rgba(232,228,255,0.3);
+    font-family: var(--font-mono);
+  }
+
+  .key {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    padding: 3px 8px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: rgba(232,228,255,0.5);
+    letter-spacing: 0.3px;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10,10,15,0.5);
+    backdrop-filter: blur(8px);
+  }
+
+  .footer-text {
+    font-size: 11px;
+    color: rgba(232,228,255,0.2);
+    font-family: var(--font-mono);
+    letter-spacing: 0.5px;
+  }
+
+  .footer-version {
+    font-size: 10px;
+    color: rgba(167,139,255,0.4);
+    font-family: var(--font-mono);
+    letter-spacing: 1px;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.35; transform: scale(0.6); }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: 0% center; }
+    100% { background-position: 200% center; }
+  }
+
+  @keyframes breathe {
+    0%, 100% { box-shadow: 0 0 28px rgba(120,80,255,0.4), 0 0 60px rgba(120,80,255,0.15); }
+    50%       { box-shadow: 0 0 40px rgba(120,80,255,0.6), 0 0 80px rgba(120,80,255,0.25); }
+  }
+
+  @keyframes scan {
+    0%   { top: 14px; opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { top: calc(100% - 14px); opacity: 0; }
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 480px) {
+    nav { padding: 16px 20px; }
+    .hero { padding: 48px 16px 32px; }
+    .features-section { padding: 0 16px 24px; }
+    .shortcuts-section { gap: 10px; }
+    footer { flex-direction: column; gap: 6px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="shader-canvas"></canvas>
+
+<div class="page">
+
+  <!-- NAVBAR -->
+  <nav>
+    <div class="logo">Air<span>Draw</span> Pro</div>
+    <div class="nav-right">
+      <div class="nav-dot" id="status-dot"></div>
+      <div class="badge">AI Powered</div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="eyebrow">
+      <div class="pulse-dot"></div>
+      Gesture Recognition
+    </div>
+    <h1 class="hero-title">
+      Draw with<br>
+      <span class="grad">thin air.</span>
+    </h1>
+    <p class="hero-sub">Real-time hand tracking powered by REST API. Control every stroke remotely.</p>
+  </section>
+
+  <!-- BRUSH PILLS -->
+  <div class="pills-row">
+    <div class="pill active" data-pill="smooth">
+      <div class="pill-dot" style="background:#a78bff"></div> Smooth
+    </div>
+    <div class="pill" data-pill="marker">
+      <div class="pill-dot" style="background:#60a5fa"></div> Marker
+    </div>
+    <div class="pill" data-pill="block">
+      <div class="pill-dot" style="background:#34d399"></div> Block
+    </div>
+  </div>
+
+  <!-- START BUTTON -->
+  <div class="cta-wrap">
+    <button class="start-btn" id="start-btn">▶&nbsp;&nbsp;Check API Status</button>
+    <span class="hint-text">Requires backend at localhost:8000</span>
+  </div>
+
+  <!-- CANVAS PREVIEW -->
+  <div class="cam-section">
+    <div class="cam-card">
+      <div class="cam-frame">
+        <img id="canvas-preview" style="display:none;" alt="Canvas Preview">
+        <div class="cam-corners">
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+        </div>
+        <div class="cam-scan"></div>
+        <div class="cam-placeholder" id="cam-placeholder">✋</div>
+        <div class="cam-label" id="cam-label">READY · API</div>
+      </div>
+      <div class="mode-strip">
+        <div class="mode-item" data-mode="draw">
+          <span class="mode-emoji">☝️</span>
+          <span class="mode-label">Draw</span>
+        </div>
+        <div class="mode-item" data-mode="pause">
+          <span class="mode-emoji">✌️</span>
+          <span class="mode-label">Pause</span>
+        </div>
+        <div class="mode-item" data-mode="drag">
+          <span class="mode-emoji">🤌</span>
+          <span class="mode-label">Drag</span>
+        </div>
+        <div class="mode-item" data-mode="clear">
+          <span class="mode-emoji">🖐️</span>
+          <span class="mode-label">Clear</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLOR PICKER -->
+  <div class="color-section">
+    <span class="color-label">Color</span>
+    <div class="swatch selected" style="background:#00ff00" data-bgr="0,255,0" data-name="green"></div>
+    <div class="swatch" style="background:#0000ff" data-bgr="255,0,0" data-name="red"></div>
+    <div class="swatch" style="background:#ff0000" data-bgr="0,0,255" data-name="blue"></div>
+    <div class="swatch" style="background:#00ffff" data-bgr="0,255,255" data-name="yellow"></div>
+    <div class="swatch" style="background:#ff00ff" data-bgr="255,0,255" data-name="magenta"></div>
+    <div class="swatch" style="background:#ffffff" data-bgr="255,255,255" data-name="white"></div>
+  </div>
+
+  <!-- BRUSH TYPE -->
+  <div class="brush-section">
+    <div class="brush-btn selected" data-brush="smooth">✏️ Smooth</div>
+    <div class="brush-btn" data-brush="marker">🖊️ Marker</div>
+    <div class="brush-btn" data-brush="block">⬛ Block</div>
+  </div>
+
+  <!-- FEATURE CARDS -->
+  <div class="features-section">
+    <div class="feat-card">
+      <span class="feat-icon">🌐</span>
+      <div class="feat-title">REST API</div>
+      <div class="feat-desc">Full control via HTTP endpoints</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🎨</span>
+      <div class="feat-title">Multi-Brush</div>
+      <div class="feat-desc">Smooth, marker & block modes</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">⬅️➡️</span>
+      <div class="feat-title">Undo / Redo</div>
+      <div class="feat-desc">Full history support</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">💾</span>
+      <div class="feat-title">Export</div>
+      <div class="feat-desc">PNG and transparent PNG</div>
+    </div>
+  </div>
+
+  <!-- KEYBOARD SHORTCUTS -->
+  <div class="shortcuts-section">
+    <div class="shortcut"><span class="key">CTRL+Z</span> Undo</div>
+    <div class="shortcut"><span class="key">CTRL+Y</span> Redo</div>
+    <div class="shortcut"><span class="key">C</span> Clear</div>
+    <div class="shortcut"><span class="key">D</span> Download</div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <span class="footer-text">AirDraw Pro AI © 2025 · Integrated with REST Backend</span>
+    <span class="footer-version">v1.0.0 · API READY</span>
+  </footer>
+
+</div>
+
+<script>
+// ── API CONFIG ───────────────────────────────────────────────────────────────
+const API_BASE = 'http://localhost:8000';
+
+// ── WebGL SHADER BACKGROUND ──────────────────────────────────────────────────
+const canvas = document.getElementById('shader-canvas');
+const gl = canvas.getContext('webgl');
+
+const vsSource = `
+  attribute vec4 aVertexPosition;
+  void main() {
+    gl_Position = aVertexPosition;
+  }
+`;
+
+const fsSource = `
+  precision highp float;
+  uniform vec2 iResolution;
+  uniform float iTime;
+
+  const float overallSpeed = 0.2;
+  const float gridSmoothWidth = 0.015;
+  const float axisWidth = 0.05;
+  const float majorLineWidth = 0.025;
+  const float minorLineWidth = 0.0125;
+  const float majorLineFrequency = 5.0;
+  const float minorLineFrequency = 1.0;
+  const vec4 gridColor = vec4(0.5);
+  const float scale = 5.0;
+  const vec4 lineColor = vec4(0.4, 0.2, 0.8, 1.0);
+  const float minLineWidth = 0.01;
+  const float maxLineWidth = 0.2;
+  const float lineSpeed = 1.0 * overallSpeed;
+  const float lineAmplitude = 1.0;
+  const float lineFrequency = 0.2;
+  const float warpSpeed = 0.2 * overallSpeed;
+  const float warpFrequency = 0.5;
+  const float warpAmplitude = 1.0;
+  const float offsetFrequency = 0.5;
+  const float offsetSpeed = 1.33 * overallSpeed;
+  const float minOffsetSpread = 0.6;
+  const float maxOffsetSpread = 2.0;
+  const int linesPerGroup = 16;
+
+  #define drawCircle(pos, radius, coord) smoothstep(radius + gridSmoothWidth, radius, length(coord - (pos)))
+  #define drawSmoothLine(pos, halfWidth, t) smoothstep(halfWidth, 0.0, abs(pos - (t)))
+  #define drawCrispLine(pos, halfWidth, t) smoothstep(halfWidth + gridSmoothWidth, halfWidth, abs(pos - (t)))
+  #define drawPeriodicLine(freq, width, t) drawCrispLine(freq / 2.0, width, abs(mod(t, freq) - (freq) / 2.0))
+
+  float drawGridLines(float axis) {
+    return drawCrispLine(0.0, axisWidth, axis)
+          + drawPeriodicLine(majorLineFrequency, majorLineWidth, axis)
+          + drawPeriodicLine(minorLineFrequency, minorLineWidth, axis);
+  }
+
+  float drawGrid(vec2 space) {
+    return min(1.0, drawGridLines(space.x) + drawGridLines(space.y));
+  }
+
+  float random(float t) {
+    return (cos(t) + cos(t * 1.3 + 1.3) + cos(t * 1.4 + 1.4)) / 3.0;
+  }
+
+  float getPlasmaY(float x, float horizontalFade, float offset) {
+    return random(x * lineFrequency + iTime * lineSpeed) * horizontalFade * lineAmplitude + offset;
+  }
+
+  void main() {
+    vec2 fragCoord = gl_FragCoord.xy;
+    vec4 fragColor;
+    vec2 uv = fragCoord.xy / iResolution.xy;
+    vec2 space = (fragCoord - iResolution.xy / 2.0) / iResolution.x * 2.0 * scale;
+
+    float horizontalFade = 1.0 - (cos(uv.x * 6.28) * 0.5 + 0.5);
+    float verticalFade = 1.0 - (cos(uv.y * 6.28) * 0.5 + 0.5);
+
+    space.y += random(space.x * warpFrequency + iTime * warpSpeed) * warpAmplitude * (0.5 + horizontalFade);
+    space.x += random(space.y * warpFrequency + iTime * warpSpeed + 2.0) * warpAmplitude * horizontalFade;
+
+    vec4 lines = vec4(0.0);
+    vec4 bgColor1 = vec4(0.1, 0.1, 0.3, 1.0);
+    vec4 bgColor2 = vec4(0.3, 0.1, 0.5, 1.0);
+
+    for(int l = 0; l < linesPerGroup; l++) {
+      float normalizedLineIndex = float(l) / float(linesPerGroup);
+      float offsetTime = iTime * offsetSpeed;
+      float offsetPosition = float(l) + space.x * offsetFrequency;
+      float rand = random(offsetPosition + offsetTime) * 0.5 + 0.5;
+      float halfWidth = mix(minLineWidth, maxLineWidth, rand * horizontalFade) / 2.0;
+      float offset = random(offsetPosition + offsetTime * (1.0 + normalizedLineIndex)) * mix(minOffsetSpread, maxOffsetSpread, horizontalFade);
+      float linePosition = getPlasmaY(space.x, horizontalFade, offset);
+      float line = drawSmoothLine(linePosition, halfWidth, space.y) / 2.0 + drawCrispLine(linePosition, halfWidth * 0.15, space.y);
+
+      float circleX = mod(float(l) + iTime * lineSpeed, 25.0) - 12.0;
+      vec2 circlePosition = vec2(circleX, getPlasmaY(circleX, horizontalFade, offset));
+      float circle = drawCircle(circlePosition, 0.01, space) * 4.0;
+
+      line = line + circle;
+      lines += line * lineColor * rand;
+    }
+
+    fragColor = mix(bgColor1, bgColor2, uv.x);
+    fragColor *= verticalFade;
+    fragColor.a = 1.0;
+    fragColor += lines;
+
+    gl_FragColor = fragColor;
+  }
+`;
+
+function loadShader(gl, type, source) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error('Shader error:', gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
+    return null;
+  }
+  return shader;
+}
+
+function initShaderProgram(gl, vs, fs) {
+  const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vs);
+  const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fs);
+  const program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error('Program error:', gl.getProgramInfoLog(program));
+    return null;
+  }
+  return program;
+}
+
+if (gl) {
+  const program = initShaderProgram(gl, vsSource, fsSource);
+  const positionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+  const programInfo = {
+    program,
+    attrib: gl.getAttribLocation(program, 'aVertexPosition'),
+    uRes:   gl.getUniformLocation(program, 'iResolution'),
+    uTime:  gl.getUniformLocation(program, 'iTime'),
+  };
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const startTime = Date.now();
+  function render() {
+    const t = (Date.now() - startTime) / 1000;
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(programInfo.program);
+    gl.uniform2f(programInfo.uRes, canvas.width, canvas.height);
+    gl.uniform1f(programInfo.uTime, t);
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.vertexAttribPointer(programInfo.attrib, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(programInfo.attrib);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+}
+
+// ── API HELPERS ──────────────────────────────────────────────────────────────
+async function apiCall(endpoint, method = 'GET', body = null) {
+  const opts = { method };
+  if (body) {
+    opts.headers = { 'Content-Type': 'application/json' };
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(`${API_BASE}${endpoint}`, opts);
+  if (!res.ok) throw new Error(`API Error: ${res.status}`);
+  return res.json();
+}
+
+async function checkHealth() {
+  try {
+    const data = await apiCall('/health');
+    document.getElementById('status-dot').style.background = '#34d399';
+    document.getElementById('cam-label').textContent = 'CONNECTED · API';
+    return true;
+  } catch (e) {
+    document.getElementById('status-dot').style.background = '#f87171';
+    document.getElementById('cam-label').textContent = 'DISCONNECTED · API';
+    return false;
+  }
+}
+
+async function refreshCanvas() {
+  try {
+    const data = await apiCall('/canvas/image?transparent=false&base64_data=true');
+    if (data.ok && data.png_base64) {
+      const img = document.getElementById('canvas-preview');
+      img.src = `data:image/png;base64,${data.png_base64}`;
+      img.style.display = 'block';
+      document.getElementById('cam-placeholder').style.display = 'none';
+    }
+  } catch (e) {
+    console.error('Failed to fetch canvas:', e);
+  }
+}
+
+// ── UI INTERACTIONS ──────────────────────────────────────────────────────────
+
+// Brush pills (visual only, mapped to brush buttons)
+document.querySelectorAll('.pill').forEach(p => {
+  p.addEventListener('click', () => {
+    document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
+    p.classList.add('active');
+  });
+});
+
+// Mode strip (visual only, no API call)
+document.querySelectorAll('.mode-item').forEach(m => {
+  m.addEventListener('click', () => {
+    document.querySelectorAll('.mode-item').forEach(x => x.classList.remove('active-mode'));
+    m.classList.add('active-mode');
+  });
+});
+
+// Color swatches → API
+document.querySelectorAll('.swatch').forEach(s => {
+  s.addEventListener('click', async () => {
+    document.querySelectorAll('.swatch').forEach(x => x.classList.remove('selected'));
+    s.classList.add('selected');
+    const name = s.dataset.name;
+    const [b, g, r] = s.dataset.bgr.split(',').map(Number);
+    try {
+      await apiCall('/tool/color', 'POST', { name, bgr: [b, g, r] });
+      await refreshCanvas();
+    } catch (e) {
+      console.error('Color change failed:', e);
+    }
+  });
+});
+
+// Brush type buttons → API
+document.querySelectorAll('.brush-btn').forEach(b => {
+  b.addEventListener('click', async () => {
+    document.querySelectorAll('.brush-btn').forEach(x => x.classList.remove('selected'));
+    b.classList.add('selected');
+    const mode = b.dataset.brush;
+    try {
+      await apiCall('/tool/brush', 'POST', { mode });
+      await refreshCanvas();
+    } catch (e) {
+      console.error('Brush change failed:', e);
+    }
+  });
+});
+
+// Start button → health check
+const startBtn = document.getElementById('start-btn');
+startBtn.addEventListener('click', async () => {
+  startBtn.textContent = 'Checking...';
+  startBtn.style.animation = 'none';
+  startBtn.style.opacity = '0.8';
+  const ok = await checkHealth();
+  if (ok) {
+    await refreshCanvas();
+    startBtn.textContent = '✓ API Ready';
+    startBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+    setInterval(refreshCanvas, 1000);
+  } else {
+    startBtn.textContent = '✗ API Offline';
+    startBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+  }
+  setTimeout(() => {
+    startBtn.style.animation = 'breathe 3s ease-in-out infinite';
+    startBtn.style.opacity = '1';
+  }, 1500);
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', async (e) => {
+  if (e.ctrlKey && e.key === 'z') {
+    e.preventDefault();
+    await apiCall('/canvas/undo', 'POST');
+    await refreshCanvas();
+  }
+  if (e.ctrlKey && e.key === 'y') {
+    e.preventDefault();
+    await apiCall('/canvas/redo', 'POST');
+    await refreshCanvas();
+  }
+  if (e.key === 'c' || e.key === 'C') {
+    await apiCall('/canvas/clear', 'POST');
+    await refreshCanvas();
+  }
+  if (e.key === 'd' || e.key === 'D') {
+    const data = await apiCall('/canvas/image?transparent=true&base64_data=true');
+    if (data.ok && data.png_base64) {
+      const a = document.createElement('a');
+      a.href = `data:image/png;base64,${data.png_base64}`;
+      a.download = `airdraw_${Date.now()}.png`;
+      a.click();
+    }
+  }
+});
+
+// Initial health check on load
+checkHealth();
+</script>
+</body>
+</html>
