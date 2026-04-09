@@ -187,11 +187,11 @@
           <button class="tool-btn" id="eraser-btn">🧽</button>
         </div>
         <div class="tool-group" id="color-palette">
-          <div class="swatch selected" style="background:#a78bff" data-color="167,139,255"></div>
-          <div class="swatch" style="background:#60a5fa" data-color="96,165,250"></div>
-          <div class="swatch" style="background:#f472b6" data-color="244,114,182"></div>
-          <div class="swatch" style="background:#34d399" data-color="52,211,153"></div>
-          <div class="swatch" style="background:#ffffff" data-color="255,255,255"></div>
+          <div class="swatch selected" style="background:#39ff14; box-shadow: 0 0 10px #39ff14;" data-color="57,255,20"></div>
+          <div class="swatch" style="background:#00ffff; box-shadow: 0 0 10px #00ffff;" data-color="0,255,255"></div>
+          <div class="swatch" style="background:#ff00ff; box-shadow: 0 0 10px #ff00ff;" data-color="255,0,255"></div>
+          <div class="swatch" style="background:#fae025; box-shadow: 0 0 10px #fae025;" data-color="250,224,37"></div>
+          <div class="swatch" style="background:#ff355e; box-shadow: 0 0 10px #ff355e;" data-color="255,53,94"></div>
         </div>
         <div class="tool-group">
           <button class="tool-btn" id="undo-btn">↶</button>
@@ -312,7 +312,7 @@ const CANVAS_W = 1920; const CANVAS_H = 1080;
 
 let handLandmarker; let isCamRunning = false; let lastVidTime = -1;
 
-let brushMode = "smooth", currentColor = "rgb(167,139,255)", currentThickness = 8, isEraser = false;
+let brushMode = "smooth", currentColor = "rgb(57,255,20)", currentThickness = 8, isEraser = false;
 let historyStacks = [], redoStacks = [];
 let activeStrokePoints = [], isDrawingPhase = false;
 let currentMode = "PAUSE", clearCooldown = 0, continuousClearFrames = 0;
@@ -411,7 +411,12 @@ function processHand(res) {
     
     modeBadge.innerText = currentMode;
 
-    let rawX = (1 - hand[8].x) * CANVAS_W; let rawY = hand[8].y * CANVAS_H;
+    // Track full hand centroid
+    let sumX = 0, sumY = 0;
+    for(let i=0; i<hand.length; i++) { sumX += hand[i].x; sumY += hand[i].y; }
+    let rawX = (1 - (sumX / hand.length)) * CANVAS_W;
+    let rawY = (sumY / hand.length) * CANVAS_H;
+
     if(prevCursor) { cursorX = cursorX*0.5 + rawX*0.5; cursorY = cursorY*0.5 + rawY*0.5; } else { cursorX = rawX; cursorY = rawY; prevCursor = true; }
 
     oCtx.beginPath(); oCtx.arc(cursorX, cursorY, currentThickness + 2, 0, 2*Math.PI);
@@ -438,6 +443,7 @@ function processHand(res) {
         let lastP = activeStrokePoints[activeStrokePoints.length-1];
         if(Math.hypot(lastP.x - cursorX, lastP.y - cursorY) > 2) {
            activeStrokePoints.push({x: cursorX, y: cursorY});
+           aCtx.clearRect(0,0,CANVAS_W,CANVAS_H);
            renderActiveStroke(aCtx);
         }
       }
@@ -460,7 +466,6 @@ function applyStyle(ctx) {
 }
 
 function renderActiveStroke(ctx) {
-  ctx.clearRect(0,0,CANVAS_W,CANVAS_H);
   if(activeStrokePoints.length < 2) return;
   applyStyle(ctx);
   
