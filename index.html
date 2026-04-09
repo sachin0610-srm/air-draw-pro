@@ -72,7 +72,7 @@
 
   .ws-canvas-container { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #000; }
   .canvas-wrapper { position: relative; width: 100%; height: 100%; max-width: 1920px; aspect-ratio: 16/9; background: #050508; box-shadow: 0 0 60px rgba(0,0,0,0.8); }
-  #webcam-video { position: absolute; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); opacity: 0.15; display: none; }
+  #webcam-video { position: absolute; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); opacity: 1; display: none; }
   .layer { position: absolute; top:0; left:0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
   #persistent-canvas { z-index: 10; }
   #active-stroke-canvas { z-index: 11; }
@@ -315,7 +315,7 @@ let handLandmarker; let isCamRunning = false; let lastVidTime = -1;
 let brushMode = "smooth", currentColor = "rgb(167,139,255)", currentThickness = 8, isEraser = false;
 let historyStacks = [], redoStacks = [];
 let activeStrokePoints = [], isDrawingPhase = false;
-let currentMode = "PAUSE", clearCooldown = 0;
+let currentMode = "PAUSE", clearCooldown = 0, continuousClearFrames = 0;
 let cursorX = CANVAS_W/2, cursorY = CANVAS_H/2, prevCursor = false;
 
 // Dragging Variables
@@ -372,7 +372,7 @@ document.getElementById("start-cam-btn").addEventListener('click', async (e) => 
   }
 });
 
-function getDist(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y, (p1.z - p2.z)*0.5); }
+function getDist(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y); }
 
 function trackingLoop() {
   if(!isCamRunning) return;
@@ -399,8 +399,15 @@ function processHand(res) {
     else if(f.every(x => x)) detMode = "CLEAR";
     else if(f.every(x => !x)) detMode = "DRAG"; // closed fist
 
-    if(detMode === "CLEAR" && clearCooldown === 0) { clear(); clearCooldown = 30; currentMode = "PAUSE"; }
-    else if (detMode !== "CLEAR") { currentMode = detMode; }
+    if(detMode === "CLEAR") {
+      continuousClearFrames++;
+      if (continuousClearFrames > 25 && clearCooldown === 0) {
+        clear(); clearCooldown = 30; currentMode = "PAUSE"; continuousClearFrames = 0;
+      } else { currentMode = "CLEAR"; }
+    } else {
+      continuousClearFrames = 0;
+      if (detMode !== "CLEAR") currentMode = detMode;
+    }
     
     modeBadge.innerText = currentMode;
 
@@ -458,11 +465,14 @@ function renderActiveStroke(ctx) {
   applyStyle(ctx);
   
   if (brushMode === 'block' && !isEraser) {
-    // True discreet block generation without cubic joining
-    let stepDist = currentThickness * 1.5;
-    let distSoFar = stepDist; // Draw immediately
-    let lastRenderedP = activeStrokePoints[0];
+    // True discreet block generation like dashed tracking
+    let stepDist = currentThickness * 3.5;
+    let distSoFar = stepDist;
     
+    // Configure stroke box
+    ctx.lineWidth = Math.max(2, currentThickness * 0.4);
+    ctx.strokeStyle = currentColor;
+
     for(let i=1; i<activeStrokePoints.length; i++) {
        let p1 = activeStrokePoints[i-1]; let p2 = activeStrokePoints[i];
        let d = Math.hypot(p2.x - p1.x, p2.y - p1.y);
@@ -474,7 +484,7 @@ function renderActiveStroke(ctx) {
               let tx = p1.x + (p2.x - p1.x) * ratio;
               let ty = p1.y + (p2.y - p1.y) * ratio;
               let size = currentThickness * 2;
-              ctx.fillRect(tx - size/2, ty - size/2, size, size);
+              ctx.strokeRect(tx - size/2, ty - size/2, size, size);
           }
        }
        distSoFar = (distSoFar + d) % stepDist;
