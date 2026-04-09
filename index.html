@@ -93,8 +93,8 @@
   .nav-dot {
     width: 8px; height: 8px;
     border-radius: 50%;
-    background: #34d399;
-    box-shadow: 0 0 8px #34d399;
+    background: #f59e0b; /* Orange by default */
+    box-shadow: 0 0 8px #f59e0b;
     animation: blink 2s infinite;
   }
 
@@ -151,7 +151,7 @@
     font-size: 15px;
     font-weight: 400;
     color: var(--muted);
-    max-width: 400px;
+    max-width: 500px;
     line-height: 1.75;
     margin-bottom: 40px;
     letter-spacing: 0.1px;
@@ -200,7 +200,6 @@
     animation: none;
   }
 
-  .start-btn:hover::before { opacity: 1; }
   .start-btn:active { transform: translateY(-1px); }
 
   .hint-text {
@@ -229,24 +228,47 @@
 
   .canvas-container {
     position: relative;
-    height: 450px;
+    height: 480px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: rgba(8,8,18,0.6);
+    overflow: hidden;
   }
 
-  #drawingCanvas {
-    max-width: 100%;
-    max-height: 100%;
-    border-radius: 8px;
+  #webcam-video {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1); /* Mirror camera */
+    opacity: 0.3; /* Dim the camera feed so drawings pop */
+    display: none;
   }
+
+  #drawing-canvas, #overlay-canvas {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+
+  #drawing-canvas { z-index: 2; }
+  #overlay-canvas { z-index: 3; }
 
   .canvas-placeholder {
     font-size: 52px;
     opacity: 0.15;
     user-select: none;
     filter: grayscale(0.3);
+    text-align: center;
+    z-index: 4;
+  }
+
+  .canvas-placeholder span {
+    font-size: 16px;
+    font-family: var(--font-body);
+    display: block;
+    margin-top: 10px;
   }
 
   .canvas-label {
@@ -258,6 +280,7 @@
     color: rgba(167,139,255,0.4);
     letter-spacing: 1.5px;
     text-transform: uppercase;
+    z-index: 5;
   }
 
   /* STATUS STRIP */
@@ -403,6 +426,13 @@
     color: #c4b5fd;
     transform: translateY(-2px);
   }
+  
+  .control-btn.active {
+    background: rgba(120,80,255,0.2);
+    border-color: rgba(120,80,255,0.6);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(120,80,255,0.3);
+  }
 
   .control-btn:active { transform: translateY(0); }
 
@@ -455,6 +485,17 @@
     font-size: 11px;
     color: rgba(232,228,255,0.33);
     line-height: 1.5;
+  }
+
+  /* REQUEST PERMISSION MODAL (Optional enhancement) */
+  #permission-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+    display: none; align-items: center; justify-content: center; z-index: 1000;
+  }
+  .modal-content {
+    background: #111; border: 1px solid var(--border); border-radius: 16px;
+    padding: 30px; text-align: center; max-width: 400px;
   }
 
   /* KEYBOARD SHORTCUTS */
@@ -556,16 +597,16 @@
 </head>
 <body>
 
+<!-- WebGL Shader Background -->
 <canvas id="shader-canvas"></canvas>
 
 <div class="page">
-
   <!-- NAVBAR -->
   <nav>
     <div class="logo">Air<span>Draw</span> Pro</div>
     <div class="nav-right">
       <div class="nav-dot" id="status-dot"></div>
-      <div class="badge">AI Powered</div>
+      <div class="badge">V2 Web API</div>
     </div>
   </nav>
 
@@ -573,49 +614,54 @@
   <section class="hero">
     <div class="eyebrow">
       <div class="pulse-dot"></div>
-      Gesture Recognition
+      100% Browser-Based
     </div>
     <h1 class="hero-title">
       Draw with<br>
       <span class="grad">thin air.</span>
     </h1>
-    <p class="hero-sub">Real-time hand tracking powered by MediaPipe. Zero lag. Just raise your finger and paint on the invisible canvas.</p>
+    <p class="hero-sub" id="loading-msg">Real-time hand tracking powered by MediaPipe. Zero server required. Just raise your finger and paint on the invisible canvas.</p>
   </section>
 
   <!-- START BUTTON -->
   <div class="cta-wrap">
-    <button class="start-btn" id="start-btn">▶&nbsp;&nbsp;Start Drawing</button>
-    <span class="hint-text">Desktop app must be running</span>
+    <button class="start-btn" id="start-btn" disabled>Initializing AI...</button>
+    <span class="hint-text">Works directly in your browser.</span>
   </div>
 
   <!-- CANVAS PREVIEW -->
   <div class="canvas-section">
     <div class="canvas-card">
       <div class="canvas-container">
-        <canvas id="drawingCanvas" width="640" height="480"></canvas>
-        <div class="canvas-placeholder" id="canvas-placeholder">🎨</div>
-        <div class="canvas-label" id="canvas-status">READY · CANVAS</div>
+        <!-- The camera feed -->
+        <video id="webcam-video" autoplay playsinline></video>
+        <!-- The canvas where we draw the permanent strokes -->
+        <canvas id="drawing-canvas"></canvas>
+        <!-- The canvas where we draw the UI (cursor, etc) -->
+        <canvas id="overlay-canvas"></canvas>
+        <div class="canvas-placeholder" id="canvas-placeholder">🎨<br><span>Click Start Drawing to enable webcam.</span></div>
+        <div class="canvas-label" id="canvas-status">READY · ZERO SERVER</div>
       </div>
       <div class="status-strip">
         <div class="status-item">
           <span class="status-emoji">🖌️</span>
           <span class="status-label">Mode</span>
-          <span class="status-value" id="mode-display">—</span>
+          <span class="status-value" id="mode-display">PAUSE</span>
         </div>
         <div class="status-item">
           <span class="status-emoji">✏️</span>
           <span class="status-label">Brush</span>
-          <span class="status-value" id="brush-display">—</span>
+          <span class="status-value" id="brush-display">smooth</span>
         </div>
         <div class="status-item">
           <span class="status-emoji">📄</span>
           <span class="status-label">Page</span>
-          <span class="status-value" id="page-display">—</span>
+          <span class="status-value" id="page-display">1/1</span>
         </div>
         <div class="status-item">
           <span class="status-emoji">📏</span>
           <span class="status-label">Size</span>
-          <span class="status-value" id="size-display">—</span>
+          <span class="status-value" id="size-display">6px</span>
         </div>
       </div>
     </div>
@@ -644,6 +690,7 @@
     <div class="control-btn" id="undo-btn">↶ Undo</div>
     <div class="control-btn" id="redo-btn">↷ Redo</div>
     <div class="control-btn" id="clear-btn">🗑️ Clear</div>
+    <div class="control-btn" id="eraser-btn">🧽 Eraser</div>
     <div class="control-btn" id="save-btn">💾 Save PNG</div>
     <div class="control-btn" id="prev-page-btn">← Prev Page</div>
     <div class="control-btn" id="next-page-btn">Next Page →</div>
@@ -652,68 +699,47 @@
   <!-- FEATURE CARDS -->
   <div class="features-section">
     <div class="feat-card">
-      <span class="feat-icon">🤚</span>
-      <div class="feat-title">21-Point Tracking</div>
-      <div class="feat-desc">Full MediaPipe hand skeleton with real-time landmark detection</div>
+      <span class="feat-icon">⚡</span>
+      <div class="feat-title">100% Client Side</div>
+      <div class="feat-desc">Hand tracking via WebAssembly right inside your browser</div>
     </div>
     <div class="feat-card">
       <span class="feat-icon">🎨</span>
       <div class="feat-title">Multi-Brush Modes</div>
-      <div class="feat-desc">Smooth, marker, and block brush styles with adjustable size</div>
+      <div class="feat-desc">Smooth, marker, and block brush styles</div>
     </div>
     <div class="feat-card">
       <span class="feat-icon">↶</span>
-      <div class="feat-title">Undo/Redo</div>
-      <div class="feat-desc">40-level history stack per page for mistake correction</div>
+      <div class="feat-title">History Snapshot</div>
+      <div class="feat-desc">40-level undo stack per page entirely in browser memory</div>
     </div>
     <div class="feat-card">
-      <span class="feat-icon">📄</span>
-      <div class="feat-title">Multi-Page Canvas</div>
-      <div class="feat-desc">Multiple pages with independent drawing histories</div>
-    </div>
-    <div class="feat-card">
-      <span class="feat-icon">🔧</span>
-      <div class="feat-title">Shape Assist</div>
-      <div class="feat-desc">Draw perfect lines and circles with assistant tools</div>
-    </div>
-    <div class="feat-card">
-      <span class="feat-icon">💾</span>
-      <div class="feat-title">Save & Export</div>
-      <div class="feat-desc">Export transparent PNG or save complete drawing</div>
+      <span class="feat-icon">📸</span>
+      <div class="feat-title">Instant Export</div>
+      <div class="feat-desc">Download your canvas creation as a high-quality PNG instantly</div>
     </div>
   </div>
 
   <!-- KEYBOARD SHORTCUTS -->
   <div class="shortcuts-section">
-    <div class="shortcut"><span class="key">Q</span> Quit</div>
     <div class="shortcut"><span class="key">C</span> Clear</div>
     <div class="shortcut"><span class="key">U</span> Undo</div>
     <div class="shortcut"><span class="key">R</span> Redo</div>
     <div class="shortcut"><span class="key">E</span> Eraser</div>
     <div class="shortcut"><span class="key">S</span> Save</div>
-    <div class="shortcut"><span class="key">X</span> Export PNG</div>
-    <div class="shortcut"><span class="key">L</span> Line Assist</div>
-    <div class="shortcut"><span class="key">O</span> Circle Assist</div>
-    <div class="shortcut"><span class="key">M</span> Fullscreen</div>
   </div>
 
   <!-- FOOTER -->
   <footer>
-    <span class="footer-text">AirDraw Pro AI © 2025 · Made with ❤️</span>
-    <span class="footer-version">v2.0.0 · REST API</span>
+    <span class="footer-text">AirDraw Pro AI V2 © 2026 · Built with MediaPipe</span>
+    <span class="footer-version">v2.0.0 · BROWSER NATIVE</span>
   </footer>
-
 </div>
 
 <script>
-// ── CONFIG ────────────────────────────────────────────────────────────────────
-const API_BASE = 'http://localhost:8000';
-let updateInterval = null;
-let isActive = false;
-
-// ── WebGL SHADER BACKGROUND ──────────────────────────────────────────────────
-const canvas = document.getElementById('shader-canvas');
-const gl = canvas.getContext('webgl');
+// ── WebGL SHADER BACKGROUND (Same as original) ────────────────────────────────
+const shaderCanvas = document.getElementById('shader-canvas');
+const gl = shaderCanvas.getContext('webgl');
 
 const vsSource = `
   attribute vec4 aVertexPosition;
@@ -821,11 +847,7 @@ function loadShader(gl, type, source) {
   const shader = gl.createShader(type);
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    console.error('Shader error:', gl.getShaderInfoLog(shader));
-    gl.deleteShader(shader);
-    return null;
-  }
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) return null;
   return shader;
 }
 
@@ -836,11 +858,7 @@ function initShaderProgram(gl, vs, fs) {
   gl.attachShader(program, vertexShader);
   gl.attachShader(program, fragmentShader);
   gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    console.error('Program error:', gl.getProgramInfoLog(program));
-    return null;
-  }
-  return program;
+  return gl.getProgramParameter(program, gl.LINK_STATUS) ? program : null;
 }
 
 if (gl) {
@@ -857,9 +875,9 @@ if (gl) {
   };
 
   function resize() {
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    shaderCanvas.width  = window.innerWidth;
+    shaderCanvas.height = window.innerHeight;
+    gl.viewport(0, 0, shaderCanvas.width, shaderCanvas.height);
   }
   window.addEventListener('resize', resize);
   resize();
@@ -870,7 +888,7 @@ if (gl) {
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(programInfo.program);
-    gl.uniform2f(programInfo.uRes, canvas.width, canvas.height);
+    gl.uniform2f(programInfo.uRes, shaderCanvas.width, shaderCanvas.height);
     gl.uniform1f(programInfo.uTime, t);
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.vertexAttribPointer(programInfo.attrib, 2, gl.FLOAT, false, 0, 0);
@@ -880,183 +898,417 @@ if (gl) {
   }
   requestAnimationFrame(render);
 }
-
-// ── API FUNCTIONS ─────────────────────────────────────────────────────────────
-
-async function apiCall(endpoint, method = 'GET', body = null) {
-  try {
-    const options = {
-      method,
-      headers: body ? { 'Content-Type': 'application/json' } : {},
-    };
-    if (body) options.body = JSON.stringify(body);
-    
-    const response = await fetch(`${API_BASE}${endpoint}`, options);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error(`API error (${endpoint}):`, error);
-    return null;
-  }
-}
-
-async function updateCanvas() {
-  const data = await apiCall('/canvas/image?transparent=false&base64_data=true');
-  if (!data || !data.png_base64) return;
-
-  const img = new Image();
-  img.onload = () => {
-    const ctx = drawingCanvas.getContext('2d');
-    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-    ctx.drawImage(img, 0, 0);
-    document.getElementById('canvas-placeholder').style.display = 'none';
-  };
-  img.src = 'data:image/png;base64,' + data.png_base64;
-}
-
-async function updateStatus() {
-  const state = await apiCall('/state');
-  if (!state) return;
-
-  document.getElementById('mode-display').textContent = state.tool || '—';
-  document.getElementById('brush-display').textContent = state.brush_mode || '—';
-  document.getElementById('page-display').textContent = state.page_index !== undefined ? `${state.page_index + 1}/${state.page_count}` : '—';
-  document.getElementById('size-display').textContent = state.thickness ? `${state.thickness}px` : '—';
-
-  const statusDot = document.getElementById('status-dot');
-  const canvasStatus = document.getElementById('canvas-status');
-  if (isActive) {
-    statusDot.style.background = '#34d399';
-    statusDot.style.boxShadow = '0 0 8px #34d399';
-    canvasStatus.textContent = 'LIVE · CANVAS';
-  } else {
-    statusDot.style.background = '#f59e0b';
-    statusDot.style.boxShadow = '0 0 8px #f59e0b';
-    canvasStatus.textContent = 'READY · CANVAS';
-  }
-}
-
-async function startUpdates() {
-  if (updateInterval) return;
-  isActive = true;
-  await updateStatus();
-  await updateCanvas();
-  updateInterval = setInterval(async () => {
-    await updateStatus();
-    await updateCanvas();
-  }, 500); // Update every 500ms
-}
-
-function stopUpdates() {
-  if (updateInterval) {
-    clearInterval(updateInterval);
-    updateInterval = null;
-  }
-  isActive = false;
-  updateStatus();
-}
-
-// ── UI INTERACTIONS ───────────────────────────────────────────────────────────
-
-// Color swatches
-document.querySelectorAll('.swatch').forEach(s => {
-  s.addEventListener('click', async () => {
-    document.querySelectorAll('.swatch').forEach(x => x.classList.remove('selected'));
-    s.classList.add('selected');
-    
-    const color = s.getAttribute('data-color');
-    const [r, g, b] = color.split(',').map(Number);
-    await apiCall('/tool/color', 'POST', { name: 'custom', bgr: [b, g, r] });
-    await updateStatus();
-  });
-});
-
-// Brush type buttons
-document.querySelectorAll('.brush-btn').forEach(b => {
-  b.addEventListener('click', async () => {
-    document.querySelectorAll('.brush-btn').forEach(x => x.classList.remove('selected'));
-    b.classList.add('selected');
-    
-    const mode = b.getAttribute('data-brush');
-    await apiCall('/tool/brush', 'POST', { mode });
-    await updateStatus();
-  });
-});
-
-// Control buttons
-document.getElementById('undo-btn').addEventListener('click', async () => {
-  await apiCall('/canvas/undo', 'POST');
-  await updateCanvas();
-});
-
-document.getElementById('redo-btn').addEventListener('click', async () => {
-  await apiCall('/canvas/redo', 'POST');
-  await updateCanvas();
-});
-
-document.getElementById('clear-btn').addEventListener('click', async () => {
-  if (confirm('Clear the entire canvas?')) {
-    await apiCall('/canvas/clear', 'POST');
-    await updateCanvas();
-  }
-});
-
-document.getElementById('save-btn').addEventListener('click', async () => {
-  const data = await apiCall('/canvas/image?transparent=true&base64_data=true');
-  if (!data || !data.png_base64) return;
-  
-  const link = document.createElement('a');
-  link.download = `airdraw-${Date.now()}.png`;
-  link.href = 'data:image/png;base64,' + data.png_base64;
-  link.click();
-});
-
-document.getElementById('prev-page-btn').addEventListener('click', async () => {
-  await apiCall('/page/prev', 'POST');
-  await updateCanvas();
-  await updateStatus();
-});
-
-document.getElementById('next-page-btn').addEventListener('click', async () => {
-  await apiCall('/page/next', 'POST');
-  await updateCanvas();
-  await updateStatus();
-});
-
-// Start button
-const startBtn = document.getElementById('start-btn');
-const drawingCanvas = document.getElementById('drawingCanvas');
-
-startBtn.addEventListener('click', async () => {
-  if (isActive) {
-    // Stop
-    stopUpdates();
-    startBtn.innerHTML = '▶&nbsp;&nbsp;Start Drawing';
-    startBtn.style.animation = 'breathe 3s ease-in-out infinite';
-  } else {
-    // Start
-    startBtn.textContent = 'Connecting...';
-    startBtn.style.animation = 'none';
-    startBtn.style.opacity = '0.8';
-    
-    const state = await apiCall('/state');
-    if (state) {
-      startUpdates();
-      startBtn.innerHTML = '⏸&nbsp;&nbsp;Stop Updates';
-      startBtn.style.opacity = '1';
-    } else {
-      setTimeout(() => {
-        startBtn.innerHTML = '▶&nbsp;&nbsp;Start Drawing';
-        startBtn.style.animation = 'breathe 3s ease-in-out infinite';
-        startBtn.style.opacity = '1';
-      }, 2000);
-      alert('Cannot connect to AirDraw API at ' + API_BASE + '\n\nMake sure the API server is running:\n\ncd airdraw\n.venv\\Scripts\\activate\nuvicorn api_server:app --host 0.0.0.0 --port 8000');
-    }
-  }
-});
-
-// Initial status check
-updateStatus();
 </script>
+
+<script type="module">
+// ── MEDIAPIPE AND DRAWING ENGINE LOGIC ──────────────────────────────────────────
+import {
+    HandLandmarker,
+    FilesetResolver
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/vision_bundle.js";
+
+const video = document.getElementById("webcam-video");
+const drawCanvas = document.getElementById("drawing-canvas");
+const drawCtx = drawCanvas.getContext("2d", { willReadFrequently: true });
+const overlayCanvas = document.getElementById("overlay-canvas");
+const overlayCtx = overlayCanvas.getContext("2d");
+const startBtn = document.getElementById("start-btn");
+const placeholder = document.getElementById("canvas-placeholder");
+const statusDot = document.getElementById("status-dot");
+
+// Initialization States
+let handLandmarker;
+let isWebcamRunning = false;
+let lastVideoTime = -1;
+
+// Drawing States
+let brushMode = "smooth";
+let currentColor = [167, 139, 255];
+let currentThickness = 6;
+let isEraser = false;
+
+// History and Pages
+let pages = [null]; // Holds ImageData for each page
+let histories = [[]]; // Undo stack per page
+let redos = [[]]; // Redo stack per page
+let currentPage = 0;
+
+// Gesture Memory
+let smoothedPoints = [];
+let prevPoint = null;
+let currentMode = "PAUSE";
+let clearCooldown = 0;
+let isDrawingLastFrame = false;
+
+// Configs
+const HISTORY_LIMIT = 40;
+const CANVAS_WIDTH = 1280;
+const CANVAS_HEIGHT = 720;
+
+// Init internal canvas size
+drawCanvas.width = CANVAS_WIDTH;
+drawCanvas.height = CANVAS_HEIGHT;
+overlayCanvas.width = CANVAS_WIDTH;
+overlayCanvas.height = CANVAS_HEIGHT;
+
+function setPageImageData() {
+    pages[currentPage] = drawCtx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+}
+
+function restorePageImageData() {
+    if (pages[currentPage]) {
+        drawCtx.putImageData(pages[currentPage], 0, 0);
+    } else {
+        drawCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    }
+}
+
+// Ensure first page is marked
+setPageImageData();
+
+// Update UI text
+function updateStatusUI() {
+    document.getElementById("mode-display").innerText = currentMode;
+    document.getElementById("brush-display").innerText = isEraser ? "eraser" : brushMode;
+    document.getElementById("page-display").innerText = `${currentPage + 1}/${pages.length}`;
+    document.getElementById("size-display").innerText = `${currentThickness}px`;
+    
+    if (isEraser) {
+        document.getElementById('eraser-btn').classList.add('active');
+    } else {
+        document.getElementById('eraser-btn').classList.remove('active');
+    }
+}
+
+// Tools
+function saveState() {
+    histories[currentPage].push(drawCtx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT));
+    if (histories[currentPage].length > HISTORY_LIMIT) histories[currentPage].shift();
+    redos[currentPage] = [];
+    setPageImageData();
+}
+
+function undo() {
+    if (histories[currentPage].length > 0) {
+        redos[currentPage].push(drawCtx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT));
+        drawCtx.putImageData(histories[currentPage].pop(), 0, 0);
+        setPageImageData();
+    }
+}
+
+function redo() {
+    if (redos[currentPage].length > 0) {
+        histories[currentPage].push(drawCtx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT));
+        drawCtx.putImageData(redos[currentPage].pop(), 0, 0);
+        setPageImageData();
+    }
+}
+
+function clearCanvas() {
+    saveState();
+    drawCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    setPageImageData();
+}
+
+// UI Event Listeners
+document.querySelectorAll('.swatch').forEach(s => {
+    s.addEventListener('click', () => {
+        document.querySelectorAll('.swatch').forEach(x => x.classList.remove('selected'));
+        s.classList.add('selected');
+        let [r,g,b] = s.getAttribute('data-color').split(',').map(Number);
+        currentColor = [r,g,b];
+        isEraser = false;
+        updateStatusUI();
+    });
+});
+
+document.querySelectorAll('.brush-btn').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('.brush-btn').forEach(x => x.classList.remove('selected'));
+        b.classList.add('selected');
+        brushMode = b.getAttribute('data-brush');
+        isEraser = false;
+        updateStatusUI();
+    });
+});
+
+document.getElementById('undo-btn').addEventListener('click', undo);
+document.getElementById('redo-btn').addEventListener('click', redo);
+document.getElementById('clear-btn').addEventListener('click', clearCanvas);
+document.getElementById('eraser-btn').addEventListener('click', () => {
+    isEraser = !isEraser;
+    updateStatusUI();
+});
+
+document.getElementById('save-btn').addEventListener('click', () => {
+    // Create a temporary canvas matching actual draw bounds to have proper image export
+    let temp = document.createElement('canvas');
+    temp.width = CANVAS_WIDTH; temp.height = CANVAS_HEIGHT;
+    let tctx = temp.getContext('2d');
+    
+    // Draw background color (optional: transparent is cooler)
+    // tctx.fillStyle = '#0a0a0f';
+    // tctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    
+    tctx.drawImage(drawCanvas, 0, 0);
+    
+    let a = document.createElement('a');
+    a.href = temp.toDataURL('image/png');
+    a.download = `AirDraw_v2_${Date.now()}.png`;
+    a.click();
+});
+
+document.getElementById('next-page-btn').addEventListener('click', () => {
+    setPageImageData(); // save current
+    currentPage++;
+    if (currentPage >= pages.length) {
+        // new page
+        pages.push(null);
+        histories.push([]);
+        redos.push([]);
+        restorePageImageData(); // will clear it
+    } else {
+        restorePageImageData();
+    }
+    updateStatusUI();
+});
+
+document.getElementById('prev-page-btn').addEventListener('click', () => {
+    if (currentPage > 0) {
+        setPageImageData();
+        currentPage--;
+        restorePageImageData();
+        updateStatusUI();
+    }
+});
+
+// Keyboard
+document.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    if (k === 'c') clearCanvas();
+    if (k === 'u') undo();
+    if (k === 'r') redo();
+    if (k === 'e') { isEraser = !isEraser; updateStatusUI(); }
+    if (k === 's') document.getElementById('save-btn').click();
+    if (k === '-' || k === '_') currentThickness = Math.max(1, currentThickness - 1);
+    if (k === '=' || k === '+') currentThickness = Math.min(24, currentThickness + 1);
+    updateStatusUI();
+});
+
+// Initialize MediaPipe AI
+async function initMediaPipe() {
+    try {
+        const vision = await FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+        );
+        handLandmarker = await HandLandmarker.createFromOptions(vision, {
+            baseOptions: {
+                modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+                delegate: "GPU"
+            },
+            runningMode: "VIDEO",
+            numHands: 2,
+            minHandDetectionConfidence: 0.7,
+            minHandPresenceConfidence: 0.7,
+            minTrackingConfidence: 0.7
+        });
+        startBtn.innerText = "▶  Start Drawing";
+        startBtn.disabled = false;
+        document.getElementById("loading-msg").innerText = "AI Engine Loaded! Click Start Drawing to begin.";
+    } catch(e) {
+        startBtn.innerText = "Error loading AI";
+        console.error(e);
+        alert("Failed to load MediaPipe AI. Please check your internet connection.");
+    }
+}
+initMediaPipe();
+
+// Start Camera Flow
+startBtn.addEventListener('click', async () => {
+    if (!handLandmarker) return;
+
+    if (isWebcamRunning) {
+        isWebcamRunning = false;
+        video.srcObject.getTracks().forEach(t => t.stop());
+        startBtn.innerText = "▶  Start Drawing";
+        placeholder.style.display = "block";
+        video.style.display = "none";
+        statusDot.style.background = "#f59e0b";
+        document.getElementById("canvas-status").innerText = "READY · ZERO SERVER";
+        overlayCtx.clearRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
+    } else {
+        const constraints = { video: { width: CANVAS_WIDTH, height: CANVAS_HEIGHT } };
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = stream;
+            video.addEventListener("loadeddata", predictWebcam);
+            isWebcamRunning = true;
+            startBtn.innerText = "⏸ Stop Drawing";
+            placeholder.style.display = "none";
+            video.style.display = "block";
+            statusDot.style.background = "#34d399";
+            document.getElementById("canvas-status").innerText = "LIVE · TRACKING ON";
+        } catch(e) {
+            alert("Webcam access required for gesture tracking.");
+        }
+    }
+});
+
+function drawBrushStroke(p1, p2) {
+    if (isEraser) {
+        drawCtx.globalCompositeOperation = 'destination-out';
+        drawCtx.lineWidth = currentThickness * 3;
+        drawCtx.lineCap = 'round';
+        drawCtx.lineJoin = 'round';
+        drawCtx.beginPath();
+        drawCtx.moveTo(p1.x, p1.y);
+        drawCtx.lineTo(p2.x, p2.y);
+        drawCtx.stroke();
+        drawCtx.globalCompositeOperation = 'source-over';
+    } else if (brushMode === "block") {
+        drawCtx.fillStyle = `rgb(${currentColor[0]},${currentColor[1]},${currentColor[2]})`;
+        let dx = p2.x - p1.x;
+        let dy = p2.y - p1.y;
+        let dist = Math.hypot(dx, dy);
+        let blocksRequired = Math.max(1, dist / (currentThickness/2)); 
+        let bs = Math.max(4, currentThickness * 2);
+        for(let i=0; i<=blocksRequired; i++) {
+            let tx = p1.x + dx*(i/blocksRequired);
+            let ty = p1.y + dy*(i/blocksRequired);
+            drawCtx.fillRect(tx - bs/2, ty - bs/2, bs, bs);
+        }
+    } else if (brushMode === "marker") {
+        drawCtx.strokeStyle = `rgb(${currentColor[0]},${currentColor[1]},${currentColor[2]})`;
+        drawCtx.lineWidth = currentThickness * 1.5;
+        drawCtx.lineCap = 'butt';
+        drawCtx.lineJoin = 'miter';
+        drawCtx.beginPath();
+        drawCtx.moveTo(p1.x, p1.y);
+        drawCtx.lineTo(p2.x, p2.y);
+        drawCtx.stroke();
+    } else {
+        // smooth
+        drawCtx.strokeStyle = `rgb(${currentColor[0]},${currentColor[1]},${currentColor[2]})`;
+        drawCtx.lineWidth = currentThickness;
+        drawCtx.lineCap = 'round';
+        drawCtx.lineJoin = 'round';
+        drawCtx.beginPath();
+        drawCtx.moveTo(p1.x, p1.y);
+        drawCtx.lineTo(p2.x, p2.y);
+        drawCtx.stroke();
+    }
+}
+
+// Logic Loop
+async function predictWebcam() {
+    if (!isWebcamRunning) return;
+
+    if (video.currentTime !== lastVideoTime) {
+        lastVideoTime = video.currentTime;
+        let results = handLandmarker.detectForVideo(video, performance.now());
+        processAIResults(results);
+    }
+    requestAnimationFrame(predictWebcam);
+}
+
+function processAIResults(results) {
+    overlayCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    if (clearCooldown > 0) clearCooldown--;
+
+    if (results.landmarks && results.landmarks.length > 0) {
+        // Use first detected hand
+        const hand = results.landmarks[0];
+        
+        let fingers = [false, false, false, false, false];
+        
+        // 0 = Thumb tip (4), mcp (2). If tip x is further away from center than mcp...
+        // Normalized Coords, Y is down
+        // 1 = Index tip (8), pip (6)
+        // 2 = Middle tip (12), pip (10)
+        // 3 = Ring tip (16), pip (14)
+        // 4 = Pinky tip (20), pip (18)
+
+        fingers[1] = hand[8].y < hand[6].y;
+        fingers[2] = hand[12].y < hand[10].y;
+        fingers[3] = hand[16].y < hand[14].y;
+        fingers[4] = hand[20].y < hand[18].y;
+        
+        // Thumb heuristic: tip x vs mcp x
+        // For mirrored video, compare horizontal movement
+        let thumbTipDiff = Math.abs(hand[4].x - hand[9].x);
+        let thumbMcpDiff = Math.abs(hand[2].x - hand[9].x);
+        fingers[0] = thumbTipDiff > thumbMcpDiff * 1.5;
+
+        let detectedMode = "PAUSE";
+        if (fingers[1] && !fingers[2] && !fingers[3] && !fingers[4]) {
+            detectedMode = "DRAW";
+        } else if (fingers[1] && fingers[2] && !fingers[3] && !fingers[4]) {
+            detectedMode = "PAUSE";
+        } else if (fingers.every(f => f)) {
+            detectedMode = "CLEAR";
+        }
+
+        if (detectedMode === "CLEAR" && clearCooldown === 0) {
+            clearCanvas();
+            clearCooldown = 30; // Pause logic slightly
+            currentMode = "PAUSE";
+        } else if (detectedMode !== "CLEAR") {
+            currentMode = detectedMode;
+        }
+
+        // Draw cursor using index tip (flipped X because of video mirror)
+        let cx = (1 - hand[8].x) * CANVAS_WIDTH;
+        let cy = hand[8].y * CANVAS_HEIGHT;
+
+        // Visual Cursor
+        overlayCtx.beginPath();
+        overlayCtx.arc(cx, cy, currentThickness + 2, 0, 2*Math.PI);
+        overlayCtx.fillStyle = currentMode === 'DRAW' ? 'rgba(52, 211, 153, 0.8)' : 'rgba(167, 139, 255, 0.5)';
+        if (isEraser && currentMode === "DRAW") overlayCtx.fillStyle = 'rgba(255,100,100,0.8)';
+        overlayCtx.fill();
+        overlayCtx.lineWidth = 1.5;
+        overlayCtx.strokeStyle = 'white';
+        overlayCtx.stroke();
+        
+        // Mode logic
+        if (currentMode === "DRAW") {
+            if (!isDrawingLastFrame) {
+                saveState(); // start new stroke history
+                smoothedPoints = [];
+                prevPoint = null;
+                isDrawingLastFrame = true;
+            }
+
+            // Simple smoothing array
+            smoothedPoints.push({x: cx, y: cy});
+            if (smoothedPoints.length > 5) smoothedPoints.shift();
+            
+            let ax = smoothedPoints.reduce((a,b)=>a+b.x,0)/smoothedPoints.length;
+            let ay = smoothedPoints.reduce((a,b)=>a+b.y,0)/smoothedPoints.length;
+            
+            if (prevPoint) {
+                drawBrushStroke(prevPoint, {x: ax, y: ay});
+            }
+            prevPoint = {x: ax, y: ay};
+        } else {
+            isDrawingLastFrame = false;
+            prevPoint = null;
+            smoothedPoints = [];
+        }
+
+    } else {
+        isDrawingLastFrame = false;
+        prevPoint = null;
+        smoothedPoints = [];
+        currentMode = "PAUSE";
+    }
+
+    updateStatusUI();
+}
+
+updateStatusUI();
+</script>
+
 </body>
 </html>

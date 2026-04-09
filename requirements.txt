@@ -1,6 +1,5 @@
-opencv-python-headless
-mediapipe
-numpy
-fastapi
-uvicorn[standard]
+opencv-python-headless==4.8.1.78
+numpy==1.24.3
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
 
