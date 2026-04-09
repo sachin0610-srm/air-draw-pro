@@ -16,199 +16,93 @@
     --muted: rgba(232,228,255,0.4);
     --card-bg: rgba(255,255,255,0.04);
     --border: rgba(120,80,255,0.15);
-    --border-hover: rgba(120,80,255,0.4);
     --font-head: 'Plus Jakarta Sans', sans-serif;
     --font-body: 'Outfit', sans-serif;
     --font-mono: 'IBM Plex Mono', monospace;
   }
 
   html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; overflow-x: hidden; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-body);
-    font-weight: 400;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+  /* SHADER */
+  #shader-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; transition: opacity 0.5s ease; }
 
-  /* WEBGL CANVAS */
-  #shader-canvas {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: -1;
-    pointer-events: none;
-    transition: opacity 0.5s ease;
-  }
-
-  /* NAVBAR */
-  nav {
-    position: fixed;
-    top: 0; left: 0; width: 100%;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 40px;
-    background: rgba(10,10,15,0.8);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .logo {
-    font-family: var(--font-head);
-    font-weight: 700;
-    font-size: 20px;
-    letter-spacing: -0.5px;
-    color: #fff;
-  }
+  /* NAV */
+  nav { position: fixed; top: 0; left: 0; width: 100%; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; background: rgba(10,10,15,0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); transition: transform 0.4s ease; }
+  .logo { font-family: var(--font-head); font-weight: 700; font-size: 20px; color: #fff; }
   .logo span { color: var(--accent); }
-
-  .nav-tabs {
-    display: flex;
-    gap: 8px;
-    background: rgba(255,255,255,0.03);
-    padding: 4px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.05);
-  }
-
-  .tab-btn {
-    background: transparent;
-    border: none;
-    padding: 8px 18px;
-    border-radius: 8px;
-    color: var(--muted);
-    font-family: var(--font-head);
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-
+  .nav-tabs { display: flex; gap: 8px; background: rgba(255,255,255,0.03); padding: 4px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+  .tab-btn { background: transparent; border: none; padding: 8px 18px; border-radius: 8px; color: var(--muted); font-family: var(--font-head); font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.3s; }
   .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
   .tab-btn.active { color: #fff; background: rgba(120,80,255,0.2); box-shadow: 0 0 12px rgba(120,80,255,0.2); }
 
   /* VIEWS */
-  .view {
-    display: none;
-    padding-top: 80px; /* offset for nav */
-    min-height: 100vh;
-    animation: fadeIn 0.4s ease;
-  }
+  .view { display: none; padding-top: 80px; min-height: 100vh; animation: fadeIn 0.4s ease; }
   .view.active { display: block; }
+  
+  /* WORKSPACE OVERRIDE fullscreen */
+  #workspace-view { padding-top: 0; position: fixed; inset: 0; z-index: 200; background: #050508; display: none; }
+  #workspace-view.active { display: flex; }
 
-  /* HOME VIEW */
-  .hero {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 80px 24px 60px;
-  }
-
-  .hero-eyebrow {
-    font-size: 11px; font-weight: 600; color: var(--accent); letter-spacing: 2px; text-transform: uppercase;
-    margin-bottom: 24px; font-family: var(--font-head);
-    background: rgba(120,80,255,0.1); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(120,80,255,0.3);
-  }
-
-  .hero-title {
-    font-family: var(--font-head); font-weight: 800; font-size: clamp(48px, 8vw, 84px);
-    line-height: 1.05; letter-spacing: -2.5px; color: #fff; margin-bottom: 24px;
-  }
-
-  .grad-text {
-    background: linear-gradient(135deg, #a78bff 0%, #60a5fa 50%, #a78bff 100%);
-    background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    animation: textShine 4s linear infinite;
-  }
-
-  .hero-sub {
-    font-size: 17px; color: var(--muted); max-width: 600px; line-height: 1.6; margin-bottom: 48px;
-  }
-
-  .cta-btn {
-    background: linear-gradient(135deg, #7c3aed, #4f46e5); border: none; border-radius: 14px;
-    padding: 20px 48px; font-family: var(--font-head); font-weight: 600; font-size: 16px; color: #fff;
-    cursor: pointer; letter-spacing: 0.5px; box-shadow: 0 0 30px rgba(120,80,255,0.5);
-    transition: all 0.3s ease; position: relative; overflow: hidden;
-  }
+  /* HOME */
+  .hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 80px 24px 60px; }
+  .hero-eyebrow { font-size: 11px; font-weight: 600; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 24px; font-family: var(--font-head); background: rgba(120,80,255,0.1); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(120,80,255,0.3); }
+  .hero-title { font-family: var(--font-head); font-weight: 800; font-size: clamp(48px, 8vw, 84px); line-height: 1.05; letter-spacing: -2.5px; color: #fff; margin-bottom: 24px; }
+  .grad-text { background: linear-gradient(135deg, #a78bff 0%, #60a5fa 50%, #a78bff 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: textShine 4s linear infinite; }
+  .hero-sub { font-size: 17px; color: var(--muted); max-width: 600px; line-height: 1.6; margin-bottom: 48px; }
+  .cta-btn { background: linear-gradient(135deg, #7c3aed, #4f46e5); border: none; border-radius: 14px; padding: 20px 48px; font-family: var(--font-head); font-weight: 600; font-size: 16px; color: #fff; cursor: pointer; letter-spacing: 0.5px; box-shadow: 0 0 30px rgba(120,80,255,0.5); transition: 0.3s; }
   .cta-btn:hover { transform: translateY(-4px); box-shadow: 0 10px 40px rgba(120,80,255,0.7); }
-  .cta-btn::after { content: ''; position: absolute; top:0; left:-100%; width: 50%; height:100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: 0.5s; }
-  .cta-btn:hover::after { left: 100%; }
 
-  /* HOW IT WORKS SECTION */
-  .section-title {
-    text-align: center; font-family: var(--font-head); font-size: 32px; font-weight: 700; margin-bottom: 48px; color: #fff;
-  }
-  .how-it-works { padding: 40px 24px 80px; max-width: 1000px; margin: 0 auto; }
-  .stepper { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; }
-  
-  .step-card {
-    background: var(--card-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--border); border-radius: 20px; padding: 32px 24px;
-    text-align: center; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
+  .how-it-works { padding: 40px 24px 80px; max-width: 1000px; margin: 0 auto; text-align: center; }
+  .section-title { font-family: var(--font-head); font-size: 32px; font-weight: 700; margin-bottom: 48px; color: #fff; }
+  .stepper { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+  .step-card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 20px; padding: 32px 24px; text-align: center; transition: 0.4s; }
   .step-card:hover { transform: translateY(-10px); border-color: rgba(120,80,255,0.4); background: rgba(120,80,255,0.08); }
-  
   .step-icon { font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 0 15px rgba(255,255,255,0.2)); }
   .step-title { font-family: var(--font-head); font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 12px; }
   .step-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
 
-  /* WORKSPACE VIEW */
-  .workspace-layout {
-    display: flex; flex-direction: column; align-items: center; max-width: 1200px; margin: 0 auto; padding: 20px; gap: 24px;
-  }
+  /* WORKSPACE SPLIT LAYOUT */
+  .ws-main { flex: 1; display: flex; flex-direction: column; height: 100vh; position: relative; }
+  .ws-sidebar { width: 260px; background: #0a0a0f; border-left: 1px solid rgba(255,255,255,0.05); padding: 24px; display: flex; flex-direction: column; overflow-y: auto; }
 
-  .canvas-wrapper {
-    position: relative; width: 100%; max-width: 1080px; aspect-ratio: 16/9;
-    background: #050508; border-radius: 16px; overflow: hidden;
-    box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05);
-  }
+  .ws-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; background: rgba(0,0,0,0.5); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .back-btn { background: rgba(255,255,255,0.05); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: var(--font-body); font-weight: 600; font-size: 13px; }
+  .back-btn:hover { background: rgba(255,255,255,0.1); }
 
+  .ws-canvas-container { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #000; }
+  .canvas-wrapper { position: relative; width: 100%; height: 100%; max-width: 1920px; aspect-ratio: 16/9; background: #050508; box-shadow: 0 0 60px rgba(0,0,0,0.8); }
   #webcam-video { position: absolute; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); opacity: 0.15; display: none; }
   .layer { position: absolute; top:0; left:0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
   #persistent-canvas { z-index: 10; }
   #active-stroke-canvas { z-index: 11; }
   #overlay-canvas { z-index: 12; }
 
-  .workspace-overlay-msg {
-    position: absolute; inset:0; display:flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 20; background: rgba(5,5,8,0.8); backdrop-filter: blur(10px);
-  }
+  .workspace-overlay-msg { position: absolute; inset:0; display:flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; background: rgba(5,5,8,0.8); backdrop-filter: blur(10px); }
 
   /* TOOLBARS */
-  .toolbar {
-    display: flex; gap: 12px; background: rgba(20,20,28,0.6); padding: 12px 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap; justify-content: center; width: 100%;
-  }
-
+  .toolbar { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 30; display: flex; gap: 12px; background: rgba(20,20,28,0.7); backdrop-filter: blur(16px); padding: 12px 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap; justify-content: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
   .tool-group { display: flex; align-items: center; gap: 8px; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 16px; }
   .tool-group:last-child { border-right: none; padding-right: 0; }
-
-  .tool-btn {
-    background: rgba(255,255,255,0.05); border: 1px solid transparent; color: #e8e4ff; padding: 10px 16px; border-radius: 10px; font-family: var(--font-body); font-size: 13px; font-weight: 500; cursor: pointer; transition: 0.2s;
-  }
+  .tool-btn { background: rgba(255,255,255,0.05); border: 1px solid transparent; color: #e8e4ff; padding: 10px 16px; border-radius: 10px; font-family: var(--font-body); font-size: 13px; font-weight: 500; cursor: pointer; transition: 0.2s; }
   .tool-btn:hover { background: rgba(120,80,255,0.15); border-color: rgba(120,80,255,0.3); }
   .tool-btn.active { background: rgba(120,80,255,0.3); border-color: rgba(120,80,255,0.6); box-shadow: 0 0 15px rgba(120,80,255,0.2); }
-
-  .swatch {
-    width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s;
-  }
+  
+  .swatch { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
   .swatch:hover { transform: scale(1.1); }
   .swatch.selected { border-color: #fff; transform: scale(1.15); box-shadow: 0 0 12px rgba(255,255,255,0.4); }
 
-  .stat-badge {
-    background: rgba(0,0,0,0.5); padding: 6px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--accent2); border: 1px solid rgba(96, 165, 250, 0.2);
-  }
+  .stat-badge { background: rgba(0,0,0,0.5); padding: 6px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--accent2); border: 1px solid rgba(96, 165, 250, 0.2); }
 
-  /* Reveal Animations */
+  /* SIDEBAR UI */
+  .sidebar-title { font-family: var(--font-head); font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; }
+  .shortcut-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .sc-lbl { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .sc-val { font-size: 14px; color: #fff; font-weight: 600; display: flex; justify-content: space-between; }
+  .key-badge { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 11px; color: var(--accent); border-bottom: 2px solid rgba(255,255,255,0.2); }
+
   .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
   .reveal.visible { opacity: 1; transform: translateY(0); }
-
   @keyframes textShine { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
@@ -217,8 +111,7 @@
 
 <canvas id="shader-canvas"></canvas>
 
-<!-- NAVBAR -->
-<nav>
+<nav id="main-nav">
   <div class="logo">Air<span>Draw</span> V3</div>
   <div class="nav-tabs">
     <button class="tab-btn active" data-target="home-view">Home</button>
@@ -231,7 +124,7 @@
   <section class="hero reveal">
     <div class="hero-eyebrow">High Accuracy Gestures</div>
     <h1 class="hero-title">Draw freely with<br><span class="grad-text">ultra precision.</span></h1>
-    <p class="hero-sub">Welcome to AirDraw Pro V3. Featuring fully client-side 99.99% accurate rotation-invariant tracking, perfect spline smoothing, and a distraction-free professional workspace.</p>
+    <p class="hero-sub">Welcome to AirDraw Pro V3. Drag the canvas with a closed fist, pause effortlessly, and draw flawlessly.</p>
     <button class="cta-btn" id="start-btn-home">Enter Workspace</button>
   </section>
 
@@ -241,17 +134,22 @@
       <div class="step-card">
         <div class="step-icon">☝️</div>
         <h3 class="step-title">Draw</h3>
-        <p class="step-desc">Extend only your index finger. Drawing is now smoothed via Quadratic Beziers for fluid strokes.</p>
+        <p class="step-desc">Extend only your index finger.</p>
       </div>
       <div class="step-card">
         <div class="step-icon">✌️</div>
         <h3 class="step-title">Pause</h3>
-        <p class="step-desc">Extend index and middle fingers together to pause strokes and simply move the cursor.</p>
+        <p class="step-desc">Extend index + middle fingers to move cursor without drawing.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-icon">✊</div>
+        <h3 class="step-title">Drag</h3>
+        <p class="step-desc">Close hand into a fist to pan the canvas around.</p>
       </div>
       <div class="step-card">
         <div class="step-icon">🖐️</div>
         <h3 class="step-title">Clear</h3>
-        <p class="step-desc">Extend all five fingers entirely. The tracker works perfectly regardless of hand tilt or distance.</p>
+        <p class="step-desc">Extend all five fingers to wipe the canvas clean.</p>
       </div>
     </div>
   </section>
@@ -259,48 +157,79 @@
 
 <!-- WORKSPACE VIEW -->
 <main id="workspace-view" class="view">
-  <div class="workspace-layout">
-    
-    <div class="toolbar">
-      <div class="tool-group">
-        <button class="tool-btn" id="start-cam-btn">▶ Enable Tracking</button>
+  <div class="ws-main">
+    <div class="ws-header">
+      <button class="back-btn" id="leave-ws-btn">← Back to Home</button>
+      <div style="display:flex; gap:12px;">
         <span class="stat-badge" id="status-badge">STANDBY</span>
         <span class="stat-badge" id="mode-badge">PAUSE</span>
       </div>
-      <div class="tool-group">
-        <button class="tool-btn active" data-brush="smooth">✏️ Smooth</button>
-        <button class="tool-btn" data-brush="marker">🖊️ Marker</button>
-        <button class="tool-btn" data-brush="block">⬛ Block</button>
-        <button class="tool-btn" id="eraser-btn">🧽</button>
-      </div>
-      <div class="tool-group" id="color-palette">
-        <div class="swatch selected" style="background:#a78bff" data-color="167,139,255"></div>
-        <div class="swatch" style="background:#60a5fa" data-color="96,165,250"></div>
-        <div class="swatch" style="background:#f472b6" data-color="244,114,182"></div>
-        <div class="swatch" style="background:#34d399" data-color="52,211,153"></div>
-        <div class="swatch" style="background:#fb923c" data-color="251,146,60"></div>
-        <div class="swatch" style="background:#ffffff" data-color="255,255,255"></div>
-      </div>
+      <button class="tool-btn" id="start-cam-btn">▶ Enable Camera</button>
     </div>
 
-    <div class="canvas-wrapper">
-      <video id="webcam-video" autoplay playsinline></video>
-      <canvas id="persistent-canvas" class="layer"></canvas>
-      <canvas id="active-stroke-canvas" class="layer"></canvas>
-      <canvas id="overlay-canvas" class="layer"></canvas>
-      <div class="workspace-overlay-msg" id="ws-overlay">
-        <h2 style="font-family:var(--font-head); color:#fff; margin-bottom:10px;">Workspace Ready</h2>
-        <p style="color:var(--muted); font-size:14px;">Click the Enable Tracking button to start.</p>
+    <div class="ws-canvas-container">
+      <div class="canvas-wrapper">
+        <video id="webcam-video" autoplay playsinline></video>
+        <canvas id="persistent-canvas" class="layer"></canvas>
+        <canvas id="active-stroke-canvas" class="layer"></canvas>
+        <canvas id="overlay-canvas" class="layer"></canvas>
+        <div class="workspace-overlay-msg" id="ws-overlay">
+          <h2 style="font-family:var(--font-head); color:#fff; margin-bottom:10px;">Workspace Ready</h2>
+          <p style="color:var(--muted); font-size:14px;">Click Enable Camera at the top.</p>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="tool-group">
+          <button class="tool-btn active" data-brush="smooth">✏️ Smooth</button>
+          <button class="tool-btn" data-brush="marker">🖊️ Marker</button>
+          <button class="tool-btn" data-brush="block">⬛ Block</button>
+          <button class="tool-btn" id="eraser-btn">🧽</button>
+        </div>
+        <div class="tool-group" id="color-palette">
+          <div class="swatch selected" style="background:#a78bff" data-color="167,139,255"></div>
+          <div class="swatch" style="background:#60a5fa" data-color="96,165,250"></div>
+          <div class="swatch" style="background:#f472b6" data-color="244,114,182"></div>
+          <div class="swatch" style="background:#34d399" data-color="52,211,153"></div>
+          <div class="swatch" style="background:#ffffff" data-color="255,255,255"></div>
+        </div>
+        <div class="tool-group">
+          <button class="tool-btn" id="undo-btn">↶</button>
+          <button class="tool-btn" id="redo-btn">↷</button>
+        </div>
       </div>
     </div>
-
-    <div class="toolbar" style="margin-top: -10px;">
-      <button class="tool-btn" id="undo-btn">↶ Undo</button>
-      <button class="tool-btn" id="redo-btn">↷ Redo</button>
-      <button class="tool-btn" id="clear-btn">🗑️ Clear</button>
-      <button class="tool-btn" id="save-btn">💾 Export PNG</button>
+  </div>
+  
+  <div class="ws-sidebar">
+    <h2 class="sidebar-title">Shortcuts Menu</h2>
+    
+    <div class="shortcut-card">
+      <div class="sc-lbl">Action</div>
+      <div class="sc-val">Clear Canvas <span class="key-badge">C</span></div>
+    </div>
+    <div class="shortcut-card">
+      <div class="sc-lbl">Action</div>
+      <div class="sc-val">Undo / Redo <span class="key-badge">U / R</span></div>
+    </div>
+    <div class="shortcut-card">
+      <div class="sc-lbl">Action</div>
+      <div class="sc-val">New Page <span class="key-badge">N</span></div>
+    </div>
+    <div class="shortcut-card">
+      <div class="sc-lbl">Action</div>
+      <div class="sc-val">Eraser Toggle <span class="key-badge">E</span></div>
+    </div>
+    <div class="shortcut-card">
+      <div class="sc-lbl">Action</div>
+      <div class="sc-val">Export PNG <span class="key-badge">S</span></div>
     </div>
 
+    <h2 class="sidebar-title" style="margin-top:24px;">Gestures</h2>
+    <div class="shortcut-card"><div class="sc-lbl">Draw</div><div class="sc-val">Index Finger Up</div></div>
+    <div class="shortcut-card"><div class="sc-lbl">Pause</div><div class="sc-val">Index + Middle Up</div></div>
+    <div class="shortcut-card"><div class="sc-lbl">Drag</div><div class="sc-val">Closed Fist</div></div>
+    <div class="shortcut-card"><div class="sc-lbl">Delete</div><div class="sc-val">All 5 Fingers Up</div></div>
   </div>
 </main>
 
@@ -308,12 +237,10 @@
 // ── WEBGL BACKGROUND SHADER ────────────────────────────────────────────────
 const shaderCanvas = document.getElementById('shader-canvas');
 const gl = shaderCanvas.getContext('webgl');
-
-const vsSource = `attribute vec4 aVertexPosition; void main() { gl_Position = aVertexPosition; }`;
-const fsSource = `
+const vs = `attribute vec4 aVertexPosition; void main() { gl_Position = aVertexPosition; }`;
+const fs = `
   precision highp float; uniform vec2 iResolution; uniform float iTime;
-  const float overallSpeed = 0.2; const float scale = 5.0; const vec4 lineColor = vec4(0.4, 0.2, 0.8, 1.0);
-  const int linesPerGroup = 16;
+  const float scale = 5.0; const vec4 lineColor = vec4(0.4, 0.2, 0.8, 1.0);
   float random(float t) { return (cos(t) + cos(t * 1.3 + 1.3) + cos(t * 1.4 + 1.4)) / 3.0; }
   void main() {
     vec2 fragCoord = gl_FragCoord.xy; vec2 uv = fragCoord.xy / iResolution.xy;
@@ -321,77 +248,52 @@ const fsSource = `
     float hFade = 1.0 - (cos(uv.x * 6.28) * 0.5 + 0.5);
     float vFade = 1.0 - (cos(uv.y * 6.28) * 0.5 + 0.5);
     space.y += random(space.x * 0.5 + iTime * 0.04) * (0.5 + hFade);
-    vec4 lines = vec4(0.0); vec4 bgColor1 = vec4(0.05, 0.05, 0.08, 1.0); vec4 bgColor2 = vec4(0.1, 0.05, 0.15, 1.0);
-    for(int l = 0; l < linesPerGroup; l++) {
-      float off = random(float(l) + space.x * 0.5 + iTime * 0.26) * 1.2;
-      float yPos = random(space.x * 0.2 + iTime * 0.2) * hFade + off;
-      float line = smoothstep(0.01, 0.0, abs(yPos - space.y)) / 2.0;
-      lines += line * lineColor * random(float(l));
+    vec4 lines = vec4(0.0); vec4 bg1 = vec4(0.05, 0.05, 0.08, 1.0); vec4 bg2 = vec4(0.1, 0.05, 0.15, 1.0);
+    for(int l = 0; l < 16; l++) {
+      float yPos = random(space.x * 0.2 + iTime * 0.2) * hFade + random(float(l) + space.x * 0.5 + iTime * 0.26) * 1.2;
+      lines += (smoothstep(0.01, 0.0, abs(yPos - space.y)) / 2.0) * lineColor * random(float(l));
     }
-    vec4 finalColor = mix(bgColor1, bgColor2, uv.x) * vFade + lines;
-    finalColor.a = 1.0; gl_FragColor = finalColor;
+    vec4 finalColor = mix(bg1, bg2, uv.x) * vFade + lines; finalColor.a = 1.0; gl_FragColor = finalColor;
   }
 `;
-function initShader(gl, vs, fs) {
-  const vShader = gl.createShader(gl.VERTEX_SHADER); gl.shaderSource(vShader, vs); gl.compileShader(vShader);
-  const fShader = gl.createShader(gl.FRAGMENT_SHADER); gl.shaderSource(fShader, fs); gl.compileShader(fShader);
-  const prog = gl.createProgram(); gl.attachShader(prog, vShader); gl.attachShader(prog, fShader); gl.linkProgram(prog);
-  return prog;
+function initShader(gl, v, f) {
+  const vS = gl.createShader(gl.VERTEX_SHADER); gl.shaderSource(vS, v); gl.compileShader(vS);
+  const fS = gl.createShader(gl.FRAGMENT_SHADER); gl.shaderSource(fS, f); gl.compileShader(fS);
+  const p = gl.createProgram(); gl.attachShader(p, vS); gl.attachShader(p, fS); gl.linkProgram(p); return p;
 }
-let renderFrameId;
 let isShaderActive = true;
 if (gl) {
-  const prog = initShader(gl, vsSource, fsSource);
-  const posBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+  const p = initShader(gl, vs, fs); const pB = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, pB);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-  const attrib = gl.getAttribLocation(prog, 'aVertexPosition');
-  const uRes = gl.getUniformLocation(prog, 'iResolution');
-  const uTime = gl.getUniformLocation(prog, 'iTime');
+  const attr = gl.getAttribLocation(p, 'aVertexPosition'); const uRes = gl.getUniformLocation(p, 'iResolution'); const uTime = gl.getUniformLocation(p, 'iTime');
   function resize() { shaderCanvas.width = window.innerWidth; shaderCanvas.height = window.innerHeight; gl.viewport(0, 0, shaderCanvas.width, shaderCanvas.height); }
   window.addEventListener('resize', resize); resize();
   const startT = Date.now();
   function render() {
-    if (!isShaderActive) return;
-    gl.useProgram(prog); gl.uniform2f(uRes, shaderCanvas.width, shaderCanvas.height); gl.uniform1f(uTime, (Date.now() - startT)/1000);
-    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf); gl.vertexAttribPointer(attrib, 2, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(attrib);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    renderFrameId = requestAnimationFrame(render);
+    if(!isShaderActive) return;
+    gl.useProgram(p); gl.uniform2f(uRes, shaderCanvas.width, shaderCanvas.height); gl.uniform1f(uTime, (Date.now() - startT)/1000);
+    gl.bindBuffer(gl.ARRAY_BUFFER, pB); gl.vertexAttribPointer(attr, 2, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(attr);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); requestAnimationFrame(render);
   }
   render();
 }
 
-// ── SCROLL ANIMATIONS ──────────────────────────────────────────────────────
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
-}, { threshold: 0.1 });
+const observer = new IntersectionObserver((e) => { e.forEach(en => { if(en.isIntersecting) en.target.classList.add('visible'); }); }, { threshold: 0.1 });
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-// ── TAB NAVIGATION ──────────────────────────────────────────────────────────
-const views = document.querySelectorAll('.view');
-const tabBtns = document.querySelectorAll('.tab-btn');
-document.getElementById('start-btn-home').addEventListener('click', () => switchTab('workspace-view'));
-
-tabBtns.forEach(btn => {
-  btn.addEventListener('click', () => switchTab(btn.dataset.target));
-});
-
-function switchTab(targetId) {
-  tabBtns.forEach(b => b.classList.toggle('active', b.dataset.target === targetId));
-  views.forEach(v => v.classList.toggle('active', v.id === targetId));
-  
-  if (targetId === 'workspace-view') {
-    isShaderActive = false;
-    shaderCanvas.style.opacity = '0';
-  } else {
-    isShaderActive = true;
-    shaderCanvas.style.opacity = '1';
-    render(); // restart loop
-  }
+function switchTab(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === id));
+  document.getElementById('main-nav').style.display = id === 'workspace-view' ? 'none' : 'flex';
+  if(id === 'workspace-view') { isShaderActive = false; shaderCanvas.style.opacity = '0'; }
+  else { isShaderActive = true; shaderCanvas.style.opacity = '1'; render(); }
 }
+document.getElementById('start-btn-home').addEventListener('click', () => switchTab('workspace-view'));
+document.getElementById('leave-ws-btn').addEventListener('click', () => switchTab('home-view'));
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.target)));
 </script>
 
 <script type="module">
-// ── V3 MEDIA PIPE TRACKING & SPLINE ENGINE ──────────────────────────────────────
+// ── V3 MEDIA PIPE TRACKING & DRAW ENGINE ──────────────────────────────────────
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/vision_bundle.js";
 
 const video = document.getElementById("webcam-video");
@@ -404,78 +306,52 @@ const oCtx = overlayCanvas.getContext("2d");
 const wsOverlay = document.getElementById("ws-overlay");
 const statusBadge = document.getElementById("status-badge");
 const modeBadge = document.getElementById("mode-badge");
-const startCamBtn = document.getElementById("start-cam-btn");
 
-const CANVAS_W = 1280; const CANVAS_H = 720;
+const CANVAS_W = 1920; const CANVAS_H = 1080;
 [persistCanvas, activeCanvas, overlayCanvas].forEach(c => { c.width = CANVAS_W; c.height = CANVAS_H; });
 
-let handLandmarker;
-let isCamRunning = false;
-let lastVidTime = -1;
+let handLandmarker; let isCamRunning = false; let lastVidTime = -1;
 
-// Drawing & UI State
-let brushMode = "smooth"; // smooth, marker, block
-let currentColor = "rgb(167,139,255)";
-let currentThickness = 6;
-let isEraser = false;
+let brushMode = "smooth", currentColor = "rgb(167,139,255)", currentThickness = 8, isEraser = false;
+let historyStacks = [], redoStacks = [];
+let activeStrokePoints = [], isDrawingPhase = false;
+let currentMode = "PAUSE", clearCooldown = 0;
+let cursorX = CANVAS_W/2, cursorY = CANVAS_H/2, prevCursor = false;
 
-// History
-const HISTORY_MAX = 40;
-let historyStacks = [];
-let redoStacks = [];
+// Dragging Variables
+let isDragging = false;
+let dragStartX = 0, dragStartY = 0;
+let dragBuffer = document.createElement('canvas');
+let dCtx = dragBuffer.getContext('2d');
+dragBuffer.width = CANVAS_W; dragBuffer.height = CANVAS_H;
 
-// Spline Trackers
-let activeStrokePoints = [];
-let isDrawingPhase = false;
-let currentMode = "PAUSE";
-let clearCooldown = 0;
-
-// Cursor EMA
-let cursorX = CANVAS_W/2, cursorY = CANVAS_H/2;
-let prevCursor = false;
-
-// Helpers
 function saveUndoState() {
   historyStacks.push(pCtx.getImageData(0,0,CANVAS_W,CANVAS_H));
-  if(historyStacks.length > HISTORY_MAX) historyStacks.shift();
+  if(historyStacks.length > 40) historyStacks.shift();
   redoStacks = [];
 }
-document.getElementById('undo-btn').addEventListener('click', () => {
-  if(historyStacks.length > 0) { redoStacks.push(pCtx.getImageData(0,0,CANVAS_W,CANVAS_H)); pCtx.putImageData(historyStacks.pop(),0,0); }
-});
-document.getElementById('redo-btn').addEventListener('click', () => {
-  if(redoStacks.length > 0) { historyStacks.push(pCtx.getImageData(0,0,CANVAS_W,CANVAS_H)); pCtx.putImageData(redoStacks.pop(),0,0); }
-});
-document.getElementById('clear-btn').addEventListener('click', () => { saveUndoState(); pCtx.clearRect(0,0,CANVAS_W,CANVAS_H); });
-document.getElementById('save-btn').addEventListener('click', () => {
-  const tmp = document.createElement('canvas'); tmp.width=CANVAS_W; tmp.height=CANVAS_H;
-  tmp.getContext('2d').drawImage(persistCanvas, 0,0);
-  const a = document.createElement('a'); a.download = `AirDrawV3_${Date.now()}.png`; a.href = tmp.toDataURL(); a.click();
+function undo() { if(historyStacks.length) { redoStacks.push(pCtx.getImageData(0,0,CANVAS_W,CANVAS_H)); pCtx.putImageData(historyStacks.pop(),0,0); } }
+function redo() { if(redoStacks.length) { historyStacks.push(pCtx.getImageData(0,0,CANVAS_W,CANVAS_H)); pCtx.putImageData(redoStacks.pop(),0,0); } }
+function clear() { saveUndoState(); pCtx.clearRect(0,0,CANVAS_W,CANVAS_H); }
+function newPage() { saveUndoState(); pCtx.clearRect(0,0,CANVAS_W,CANVAS_H); historyStacks=[]; redoStacks=[]; }
+
+document.getElementById('undo-btn').addEventListener('click', undo);
+document.getElementById('redo-btn').addEventListener('click', redo);
+
+document.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  if(k === 'c') clear();
+  if(k === 'n') newPage();
+  if(k === 'u') undo();
+  if(k === 'r') redo();
+  if(k === 'e') { isEraser = !isEraser; document.getElementById('eraser-btn').classList.toggle('active', isEraser); }
+  if(k === 's') { const a = document.createElement('a'); a.download=`AirDraw_${Date.now()}.png`; a.href=persistCanvas.toDataURL(); a.click(); }
 });
 
-// UI Binds
-document.querySelectorAll('.swatch').forEach(s => {
-  s.addEventListener('click', () => {
-    document.querySelector('.swatch.selected').classList.remove('selected');
-    s.classList.add('selected');
-    currentColor = `rgb(${s.dataset.color})`;
-    isEraser = false;
-    document.getElementById('eraser-btn').classList.remove('active');
-  });
-});
-document.querySelectorAll('[data-brush]').forEach(b => {
-  b.addEventListener('click', () => {
-    document.querySelector('.tool-btn.active').classList.remove('active');
-    b.classList.add('active'); brushMode = b.dataset.brush; isEraser = false;
-    document.getElementById('eraser-btn').classList.remove('active');
-  });
-});
-document.getElementById('eraser-btn').addEventListener('click', (e) => {
-  isEraser = !isEraser;
-  e.target.classList.toggle('active', isEraser);
-});
+document.querySelectorAll('.swatch').forEach(s => s.addEventListener('click', () => { document.querySelector('.swatch.selected').classList.remove('selected'); s.classList.add('selected'); currentColor = `rgb(${s.dataset.color})`; isEraser=false; document.getElementById('eraser-btn').classList.remove('active'); }));
+document.querySelectorAll('[data-brush]').forEach(b => b.addEventListener('click', () => { document.querySelector('.tool-btn.active').classList.remove('active'); b.classList.add('active'); brushMode = b.dataset.brush; isEraser=false; document.getElementById('eraser-btn').classList.remove('active'); }));
+document.getElementById('eraser-btn').addEventListener('click', (e) => { isEraser = !isEraser; e.target.classList.toggle('active', isEraser); });
 
-// Init AI
 async function initAI() {
   statusBadge.innerText = "LOADING MODEL...";
   const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm");
@@ -483,42 +359,24 @@ async function initAI() {
     baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate: "GPU" },
     runningMode: "VIDEO", numHands: 1, minHandDetectionConfidence: 0.7, minHandPresenceConfidence: 0.7, minTrackingConfidence: 0.7
   });
-  statusBadge.innerText = "STANDBY";
-  statusBadge.style.color = "var(--accent)";
+  statusBadge.innerText = "STANDBY"; statusBadge.style.color = "var(--accent)";
 }
 initAI();
 
-// Cam controls
-startCamBtn.addEventListener('click', async () => {
+document.getElementById("start-cam-btn").addEventListener('click', async (e) => {
   if(!handLandmarker) return;
   if(isCamRunning) {
-    isCamRunning = false;
-    video.srcObject.getTracks().forEach(t => t.stop());
-    startCamBtn.innerText = "▶ Enable Tracking";
-    video.style.display = "none";
-    wsOverlay.style.display = "flex";
-    statusBadge.innerText = "STANDBY"; statusBadge.style.color = "var(--accent)";
+    isCamRunning = false; video.srcObject.getTracks().forEach(t => t.stop()); e.target.innerText = "▶ Enable Camera"; video.style.display = "none"; wsOverlay.style.display = "flex"; statusBadge.innerText = "STANDBY"; statusBadge.style.color = "var(--accent)";
   } else {
-    video.srcObject = await navigator.mediaDevices.getUserMedia({video: {width: CANVAS_W, height: CANVAS_H}});
-    video.addEventListener('loadeddata', trackingLoop);
-    isCamRunning = true;
-    startCamBtn.innerText = "⏸ Disable Tracking";
-    video.style.display = "block";
-    wsOverlay.style.display = "none";
-    statusBadge.innerText = "LIVE"; statusBadge.style.color = "#34d399";
+    video.srcObject = await navigator.mediaDevices.getUserMedia({video: {width: CANVAS_W, height: CANVAS_H}}); video.addEventListener('loadeddata', trackingLoop); isCamRunning = true; e.target.innerText = "⏸ Disable Camera"; video.style.display = "block"; wsOverlay.style.display = "none"; statusBadge.innerText = "LIVE"; statusBadge.style.color = "#34d399";
   }
 });
 
-// Accurate Rotation-Invariant Heuristic
-function getDistance(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y, (p1.z - p2.z)*0.5); }
+function getDist(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y, (p1.z - p2.z)*0.5); }
 
-// Application Loop
 function trackingLoop() {
   if(!isCamRunning) return;
-  if(video.currentTime !== lastVidTime) {
-    lastVidTime = video.currentTime;
-    processHand(handLandmarker.detectForVideo(video, performance.now()));
-  }
+  if(video.currentTime !== lastVidTime) { lastVidTime = video.currentTime; processHand(handLandmarker.detectForVideo(video, performance.now())); }
   requestAnimationFrame(trackingLoop);
 }
 
@@ -528,64 +386,69 @@ function processHand(res) {
 
   if(res.landmarks && res.landmarks.length > 0) {
     const hand = res.landmarks[0];
-    let fingers = [false, false, false, false, false];
-    
-    // Relative distance calculation: Wrist(0) to Tip vs Wrist to PIP
-    // For extreme rotation invariance, if tip is further from the wrist than the PIP, it's extended!
-    fingers[1] = getDistance(hand[0], hand[8]) > getDistance(hand[0], hand[6]);
-    fingers[2] = getDistance(hand[0], hand[12]) > getDistance(hand[0], hand[10]);
-    fingers[3] = getDistance(hand[0], hand[16]) > getDistance(hand[0], hand[14]);
-    fingers[4] = getDistance(hand[0], hand[20]) > getDistance(hand[0], hand[18]);
-    
-    // Thumb: Pinky base(17) to Thumb Tip(4) vs IP(3)
-    fingers[0] = getDistance(hand[17], hand[4]) > getDistance(hand[17], hand[3]) * 1.2;
+    let f = [false, false, false, false, false];
+    f[1] = getDist(hand[0], hand[8]) > getDist(hand[0], hand[6]);
+    f[2] = getDist(hand[0], hand[12]) > getDist(hand[0], hand[10]);
+    f[3] = getDist(hand[0], hand[16]) > getDist(hand[0], hand[14]);
+    f[4] = getDist(hand[0], hand[20]) > getDist(hand[0], hand[18]);
+    f[0] = getDist(hand[17], hand[4]) > getDist(hand[17], hand[3]) * 1.2;
 
     let detMode = "PAUSE";
-    if(fingers[1] && !fingers[2] && !fingers[3] && !fingers[4]) detMode = "DRAW";
-    else if(fingers[1] && fingers[2] && !fingers[3] && !fingers[4]) detMode = "PAUSE";
-    else if(fingers.every(f => f)) detMode = "CLEAR";
+    if(f[1] && !f[2] && !f[3] && !f[4]) detMode = "DRAW";
+    else if(f[1] && f[2] && !f[3] && !f[4]) detMode = "PAUSE";
+    else if(f.every(x => x)) detMode = "CLEAR";
+    else if(f.every(x => !x)) detMode = "DRAG"; // closed fist
 
-    if(detMode === "CLEAR" && clearCooldown === 0) {
-      saveUndoState(); pCtx.clearRect(0,0,CANVAS_W,CANVAS_H); clearCooldown = 30; currentMode = "PAUSE";
-    } else if (detMode !== "CLEAR") { currentMode = detMode; }
+    if(detMode === "CLEAR" && clearCooldown === 0) { clear(); clearCooldown = 30; currentMode = "PAUSE"; }
+    else if (detMode !== "CLEAR") { currentMode = detMode; }
     
     modeBadge.innerText = currentMode;
 
-    // EMA Cursor
-    let rawX = (1 - hand[8].x) * CANVAS_W; // Mirrored
-    let rawY = hand[8].y * CANVAS_H;
-    if(prevCursor) { cursorX = cursorX*0.5 + rawX*0.5; cursorY = cursorY*0.5 + rawY*0.5; } 
-    else { cursorX = rawX; cursorY = rawY; prevCursor = true; }
+    let rawX = (1 - hand[8].x) * CANVAS_W; let rawY = hand[8].y * CANVAS_H;
+    if(prevCursor) { cursorX = cursorX*0.5 + rawX*0.5; cursorY = cursorY*0.5 + rawY*0.5; } else { cursorX = rawX; cursorY = rawY; prevCursor = true; }
 
-    // Render Cursor Overlay
     oCtx.beginPath(); oCtx.arc(cursorX, cursorY, currentThickness + 2, 0, 2*Math.PI);
-    oCtx.fillStyle = currentMode === 'DRAW' ? (isEraser ? '#ef4444' : '#10b981') : '#a78bff';
+    oCtx.fillStyle = currentMode === 'DRAW' ? (isEraser?'#ef4444':'#10b981') : (currentMode === 'DRAG' ? '#3b82f6' : '#a78bff');
     oCtx.fill(); oCtx.lineWidth=2; oCtx.strokeStyle='#fff'; oCtx.stroke();
 
-    // Spline Drawing Logic
+    // DRAG Logic
+    if(currentMode === "DRAG") {
+      if(!isDragging) {
+        saveUndoState(); isDragging = true; dragStartX = cursorX; dragStartY = cursorY;
+        dCtx.clearRect(0,0,CANVAS_W,CANVAS_H); dCtx.drawImage(persistCanvas, 0, 0);
+      }
+      let dx = cursorX - dragStartX; let dy = cursorY - dragStartY;
+      pCtx.clearRect(0,0,CANVAS_W,CANVAS_H); pCtx.drawImage(dragBuffer, dx, dy);
+    } else {
+      isDragging = false;
+    }
+
+    // DRAW Logic
     if(currentMode === "DRAW") {
-      if(!isDrawingPhase) { saveUndoState(); activeStrokePoints = []; isDrawingPhase = true; }
-      activeStrokePoints.push({x: cursorX, y: cursorY});
-      renderActiveStroke(aCtx);
+      if(!isDrawingPhase) { saveUndoState(); activeStrokePoints = [{x:cursorX, y:cursorY}]; isDrawingPhase = true; }
+      else {
+        // Only push point if distance > small threshold for blocks
+        let lastP = activeStrokePoints[activeStrokePoints.length-1];
+        if(Math.hypot(lastP.x - cursorX, lastP.y - cursorY) > 2) {
+           activeStrokePoints.push({x: cursorX, y: cursorY});
+           renderActiveStroke(aCtx);
+        }
+      }
     } else {
       if(isDrawingPhase) { commitStroke(); isDrawingPhase = false; activeStrokePoints = []; }
     }
   } else {
     if(isDrawingPhase) { commitStroke(); isDrawingPhase = false; activeStrokePoints = []; }
-    prevCursor = false; currentMode = "PAUSE"; modeBadge.innerText = currentMode;
+    prevCursor = false; currentMode = "PAUSE"; modeBadge.innerText = "PAUSE"; isDragging = false;
   }
 }
 
 function applyStyle(ctx) {
-  if(isEraser) {
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.lineWidth = currentThickness * 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  } else {
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.strokeStyle = currentColor;
-    if(brushMode === 'marker') { ctx.lineWidth = currentThickness*2; ctx.lineCap = 'butt'; ctx.lineJoin = 'miter'; }
-    else if(brushMode === 'block') { ctx.lineWidth = currentThickness*2; ctx.lineCap = 'square'; ctx.lineJoin = 'bevel'; }
-    else { ctx.lineWidth = currentThickness; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; }
+  if(isEraser) { ctx.globalCompositeOperation = 'destination-out'; ctx.lineWidth = currentThickness * 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; }
+  else {
+    ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = currentColor; ctx.fillStyle = currentColor;
+    if(brushMode === 'marker') { ctx.lineWidth = currentThickness*2.5; ctx.lineCap = 'butt'; ctx.lineJoin = 'miter'; }
+    else if(brushMode === 'smooth') { ctx.lineWidth = currentThickness; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; }
   }
 }
 
@@ -593,16 +456,41 @@ function renderActiveStroke(ctx) {
   ctx.clearRect(0,0,CANVAS_W,CANVAS_H);
   if(activeStrokePoints.length < 2) return;
   applyStyle(ctx);
-  // Quadratic Bezier Curve Engine for Ultra Smooth Line
-  ctx.beginPath();
-  let p = activeStrokePoints;
-  ctx.moveTo(p[0].x, p[0].y);
-  for(let i=1; i<p.length-1; i++) {
-    let mx = (p[i].x + p[i+1].x) / 2; let my = (p[i].y + p[i+1].y) / 2;
-    ctx.quadraticCurveTo(p[i].x, p[i].y, mx, my);
+  
+  if (brushMode === 'block' && !isEraser) {
+    // True discreet block generation without cubic joining
+    let stepDist = currentThickness * 1.5;
+    let distSoFar = stepDist; // Draw immediately
+    let lastRenderedP = activeStrokePoints[0];
+    
+    for(let i=1; i<activeStrokePoints.length; i++) {
+       let p1 = activeStrokePoints[i-1]; let p2 = activeStrokePoints[i];
+       let d = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+       let blocksToDraw = Math.floor((distSoFar + d) / stepDist);
+       
+       for(let j=0; j<blocksToDraw; j++) {
+          let ratio = (stepDist - distSoFar + j*stepDist) / d;
+          if (ratio >= 0 && ratio <= 1) {
+              let tx = p1.x + (p2.x - p1.x) * ratio;
+              let ty = p1.y + (p2.y - p1.y) * ratio;
+              let size = currentThickness * 2;
+              ctx.fillRect(tx - size/2, ty - size/2, size, size);
+          }
+       }
+       distSoFar = (distSoFar + d) % stepDist;
+    }
+  } else {
+    // Smooth and Marker logic
+    ctx.beginPath();
+    let p = activeStrokePoints;
+    ctx.moveTo(p[0].x, p[0].y);
+    for(let i=1; i<p.length-1; i++) {
+        let mx = (p[i].x + p[i+1].x) / 2; let my = (p[i].y + p[i+1].y) / 2;
+        ctx.quadraticCurveTo(p[i].x, p[i].y, mx, my);
+    }
+    ctx.lineTo(p[p.length-1].x, p[p.length-1].y);
+    ctx.stroke();
   }
-  ctx.lineTo(p[p.length-1].x, p[p.length-1].y);
-  ctx.stroke();
 }
 
 function commitStroke() {
